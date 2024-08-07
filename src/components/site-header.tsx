@@ -46,7 +46,7 @@ export default function SiteHeader() {
               </Button>
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://twitter.com/JoeTaylor_86753"
+                  href="https://twitter.com/JoeTaylor_86753/status/1821310441760702841"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -67,7 +67,7 @@ export default function SiteHeader() {
               </Button>
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://medium.com/@learningsomethingnew"
+                  href="https://medium.com/@learningsomethingnew/another-wysiwyg-editor-biting-the-bullet-and-implementing-tiptap-9640c8348227"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
