@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import SiteFooter from "@/components/site-footer";
 import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
-import { TipTapEditorSimple } from "@/components/TipTapEditor/TipTapEditorSimple";
 
 export default async function Home() {
   return (
@@ -41,7 +40,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
-        <section>
+        <section className="mb-[5rem]">
           <TipTapEditor />
         </section>
       </div>
