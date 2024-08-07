@@ -27,6 +27,29 @@ import Heading from "@tiptap/extension-heading";
 
 import CharacterCount from "@tiptap/extension-character-count";
 
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import CodeBlockComponent from "./CodeBlockComponent";
+
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { createLowlight, all } from "lowlight";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import html from "highlight.js/lib/languages/xml";
+import css from "highlight.js/lib/languages/css";
+import python from "highlight.js/lib/languages/python";
+
+// Create a lowlight instance
+const lowlight = createLowlight(all);
+
+// Register individual languages
+lowlight.register("html", html);
+lowlight.register("css", css);
+lowlight.register("js", javascript);
+lowlight.register("javascript", javascript);
+lowlight.register("ts", typescript);
+lowlight.register("typescript", typescript);
+lowlight.register("python", python);
+
 import {
   Bold,
   CodeXml,
@@ -96,10 +119,10 @@ const MenuBar = () => {
   }
 
   return (
-    <div className="control-group">
-      <div className="flex flex-row gap-2">
+    <div className="control-group sticky top-0 py-2 z-50 bg-background">
+      <div className="flex flex-row gap-2 ">
         {/* color and highlight */}
-        <Alert className="flex flex-row p-1 m-0 w-fit gap-1">
+        <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
@@ -108,9 +131,7 @@ const MenuBar = () => {
                   style={{
                     color: editor.getAttributes("textStyle").color,
                   }}
-                >
-                  A
-                </Baseline>
+                ></Baseline>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
@@ -631,7 +652,14 @@ const extensions = [
   Document,
   Paragraph,
   Text,
-  Code,
+  CodeBlockLowlight.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(CodeBlockComponent);
+    },
+  }).configure({
+    lowlight,
+    defaultLanguage: null,
+  }),
   Heading,
   TextAlign.configure({
     types: ["heading", "paragraph"],
@@ -722,9 +750,10 @@ greet('TipTap User');</code></pre>
 
 <ul data-type="taskList">
   <li data-type="taskItem" data-checked="true">Add word count and character count</li>
-  <li data-type="taskItem" data-checked="false">Add code highlighting</li>
-  <li data-type="taskItem" data-checked="false">Add button to copy code snippets from code blocks</li>
-  <li data-type="taskItem" data-checked="false">Add toggle for syntax to use in code blocks</li>
+    <li data-type="taskItem" data-checked="true">Make the fixed menu sticky</li>
+  <li data-type="taskItem" data-checked="true">Add code highlighting</li>
+  <li data-type="taskItem" data-checked="true">Add button to copy code snippets from code blocks</li>
+  <li data-type="taskItem" data-checked="true">Add toggle for syntax to use in code blocks</li>
   <li data-type="taskItem" data-checked="false">Add image support</li>
   <li data-type="taskItem" data-checked="false">Add table support</li>
   <li data-type="taskItem" data-checked="false">Add bubble menu</li>

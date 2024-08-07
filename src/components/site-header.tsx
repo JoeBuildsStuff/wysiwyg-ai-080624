@@ -25,7 +25,7 @@ export default function SiteHeader() {
             <div className="hidden sm:block space-x-2 md:space-x-2">
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://github.com/joeBlockchain"
+                  href="https://github.com/joeBlockchain/wysiwyg-ai-080624"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
