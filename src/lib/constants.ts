@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: 'WYSIWYG-AI',
     images: [
       {
-        url: 'https://wysiwyg-ai.com/og-image.jpg',
+        url: 'https://wysiwyg-ai.com/opengraph-image.png',
         width: 1200,
         height: 630,
         alt: 'WYSIWYG-AI Editor Interface',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: 'WYSIWYG-AI: AI-Powered Visual Editing Made Simple',
     description: 'Create professional-looking content in minutes with our intuitive, AI-driven WYSIWYG editor.',
     creator: '@wysiwygai',
-    // images: ['https://wysiwyg-ai.com/twitter-image.jpg'],
+    images: ['https://wysiwyg-ai.com/opengraph-image.jpg'],
   },
   robots: {
     index: true,
