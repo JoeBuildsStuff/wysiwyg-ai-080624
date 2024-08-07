@@ -2,6 +2,8 @@ import SiteHeader from "@/components/site-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import SiteFooter from "@/components/site-footer";
+import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
+import { TipTapEditorSimple } from "@/components/TipTapEditor/TipTapEditorSimple";
 
 export default async function Home() {
   return (
@@ -14,10 +16,11 @@ export default async function Home() {
           <div className="flex flex-col justify-center space-y-4">
             <div className="mx-3 space-y-2 lg:space-y-3 max-w-md md:max-w-2xl lg:max-w-3xl">
               <h1 className="leading-tight lg::leading-snug font-black text-5xl lg:text-7xl ">
-                Welcome to our new SaaS Something
+                Welcome to my version of WYSIWYG
               </h1>
               <p className="leading-normal text-xl text-muted-foreground">
-                This is a new SaaS something that will do something.
+                Welp, the plan is to create a WYSIWYG editor that is easy to use
+                and has a lot of features... max AI features that is.
               </p>
             </div>
             <div className="flex flex-row items-center space-x-4 pt-4">
@@ -37,6 +40,9 @@ export default async function Home() {
               </Button>
             </div>
           </div>
+        </section>
+        <section>
+          <TipTapEditor />
         </section>
       </div>
       <SiteFooter />

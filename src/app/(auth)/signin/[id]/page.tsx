@@ -75,7 +75,7 @@ export default async function SignIn({
             prefetch={false}
           >
             <Image className="h-8 w-8" />
-            <div className="text-3xl font-medium">CreateArt-AI</div>
+            <div className="text-3xl font-medium">WYSIWYG-AI</div>
           </Link>
         </div>
         <CardSupabase

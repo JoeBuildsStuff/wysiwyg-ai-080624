@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Image } from "lucide-react";
+import { FileDigit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AuthButton from "@/components/auth-button";
 import { ModeToggle } from "./mode-toggle";
+import { metadata } from "@/lib/constants";
 
 export default function SiteHeader() {
+  const title = metadata.other?.["application-name"] || "Enter App Name";
   return (
     <header className="px-2 sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-10 items-center">
@@ -13,9 +15,9 @@ export default function SiteHeader() {
           className="flex mr-6 text-primary items-center"
           prefetch={false}
         >
-          <Image className="h-6 w-6 text-muted-foreground md:text-primary" />
+          <FileDigit className="h-6 w-6 text-muted-foreground md:text-primary" />
           <span className="hidden md:block ml-4 font-semibold text-base sm:text-lg ">
-            CreateArt-AI
+            {title}
           </span>
         </Link>
         <div className="flex flex-1 items-center space-x-2 justify-end">
@@ -23,7 +25,7 @@ export default function SiteHeader() {
             <div className="hidden sm:block space-x-2 md:space-x-2">
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://github.com/joeBlockchain/createart-ai"
+                  href="https://github.com/joeBlockchain"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -44,7 +46,7 @@ export default function SiteHeader() {
               </Button>
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://twitter.com/JoeTaylor_86753/status/1819535549335851217"
+                  href="https://twitter.com/JoeTaylor_86753"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -65,7 +67,7 @@ export default function SiteHeader() {
               </Button>
               <Button asChild variant="ghost" size="icon" className="h-9 w-9">
                 <Link
-                  href="https://medium.com/@learningsomethingnew/building-your-own-ai-image-generator-utilizing-stability-ai-endpoints-e0b968feba1b"
+                  href="https://medium.com/@learningsomethingnew"
                   prefetch={false}
                   target="_blank"
                   rel="noopener noreferrer"
