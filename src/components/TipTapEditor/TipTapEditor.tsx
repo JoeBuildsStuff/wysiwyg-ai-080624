@@ -25,6 +25,8 @@ import Link from "@tiptap/extension-link";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Heading from "@tiptap/extension-heading";
 
+import CharacterCount from "@tiptap/extension-character-count";
+
 import {
   Bold,
   CodeXml,
@@ -593,6 +595,14 @@ const MenuBar = () => {
             <Eraser className="w-5 h-5 flex-none" />
           </Button>
         </Alert>
+
+        <Alert className="flex flex-row p-1 px-2 m-0 h-fit w-fit gap-1">
+          <div className="text-xs text-muted-foreground">
+            {editor.storage.characterCount.words()} words
+            <br />
+            {editor.storage.characterCount.characters()} charcters
+          </div>
+        </Alert>
       </div>
     </div>
   );
@@ -631,42 +641,107 @@ const extensions = [
   Text,
   Highlight.configure({ multicolor: true }),
   Link,
+  CharacterCount,
 ];
 
 const content = `
-<h1>
-  Hi there,
-</h1>
-<p>
-  this is a <em>basic</em> example of <strong>Tiptap</strong>. Sure, there are all kind of basic text styles you’d probably expect from a text editor. But wait until you see the lists:
-</p>
+<h1>Welcome to my implementation of TipTap Rich Text Editor!</h1>
+
+<p>This is a <strong>powerful</strong> and <em>flexible</em> editor with a wide range of features. Let's explore some of its capabilities:</p>
+
+<h2>Text Formatting</h2>
+
+<p>You can make text <strong>bold</strong>, <em>italic</em>, or <s>strikethrough</s>. You can also use <code>inline code</code> for technical terms.</p>
+
+<h2>Headings</h2>
+
+<h1>This is a Level 1 Heading</h1>
+<h2>This is a Level 2 Heading</h2>
+<h3>This is a Level 3 Heading</h3>
+<h4>This is a Level 4 Heading</h4>
+<h5>This is a Level 5 Heading</h5>
+<h6>This is a Level 6 Heading</h6>
+
+<h2>Lists</h2>
+
+<h3>Bullet List</h3>
 <ul>
-  <li>
-    That’s a bullet list with one …
-  </li>
-  <li>
-    … or two list items.
-  </li>
+  <li>First item</li>
+  <li>Second item</li>
+  <li>Third item</li>
 </ul>
-<p>
-  Isn’t that great? And all of that is editable. But wait, there’s more. Let’s try a code block:
-</p>
-<pre><code class="language-css">body {
-  display: none;
-}</code></pre>
-<p>
-  I know, I know, this is impressive. It’s only the tip of the iceberg though. Give it a try and click a little bit around. Don’t forget to check the other examples too.
-</p>
+
+<h3>Ordered List</h3>
+<ol>
+  <li>First step</li>
+  <li>Second step</li>
+  <li>Third step</li>
+</ol>
+
+<h3>Task List</h3>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true">Completed task</li>
+  <li data-type="taskItem" data-checked="false">Pending task</li>
+  <li data-type="taskItem" data-checked="false">Another pending task</li>
+</ul>
+
+<h2>Quotes and Code Blocks</h2>
+
 <blockquote>
-  Wow, that’s amazing. Good work, boy! 👏
-  <br />
-  — Mom
+  <p>This is a blockquote. It's perfect for emphasizing important information or citing sources.</p>
 </blockquote>
+
+<pre><code class="language-javascript">function greet(name) {
+  console.log(hello Joe!);
+}
+
+greet('TipTap User');</code></pre>
+
+<h2>Text Alignment</h2>
+
+<p style="text-align: left">This text is aligned to the left (default).</p>
+<p style="text-align: center">This text is centered.</p>
+<p style="text-align: right">This text is aligned to the right.</p>
+
+<h2>Colors and Highlighting</h2>
+
+<p><span style="color: #e11d48;">This text is in rose color.</span></p>
+<p><span style="color: #7c3aed;">This text is in violet color.</span></p>
+<p><mark style="background-color: #10b981;">This text has an emerald highlight.</span></p>
+<p><mark style="background-color: #f59e0b;">This text has an amber highlight.</span></p>
+
+<h2>Links</h2>
+
+<p>You can add <a href="https://tiptap.dev/">links to external websites</a> or internal references.</p>
+
+<hr>
+
+<p>Feel free to experiment with these features and discover the full potential of the TipTap editor!</p>
+
+<h2>Future Improvements Checklist</h2>
+
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true">Add word count and character count</li>
+  <li data-type="taskItem" data-checked="false">Add code highlighting</li>
+  <li data-type="taskItem" data-checked="false">Add button to copy code snippets from code blocks</li>
+  <li data-type="taskItem" data-checked="false">Add toggle for syntax to use in code blocks</li>
+  <li data-type="taskItem" data-checked="false">Add image support</li>
+  <li data-type="taskItem" data-checked="false">Add table support</li>
+  <li data-type="taskItem" data-checked="false">Add bubble menu</li>
+  <li data-type="taskItem" data-checked="false">Add floating menu</li>
+  <li data-type="taskItem" data-checked="false">Add dark mode and light mode for text color and highlight colors</li>
+  <li data-type="taskItem" data-checked="false">Add AI features</li>
+  <li data-type="taskItem" data-checked="false">Add option to copy all content as Markdown or HTML</li>
+  <li data-type="taskItem" data-checked="false">Add export functionality to PDF, MS Word, or TXT</li>
+  <li data-type="taskItem" data-checked="false">Add ability to paste in Markdown or HTML</li>
+  <li data-type="taskItem" data-checked="false">Add feature to retrieve AI-generated images</li>
+  <li data-type="taskItem" data-checked="false">Experiment with custom components (e.g., a button)</li>
+</ul>
 `;
 
 export const TipTapEditor = () => {
   return (
-    <div className="prose max-w-none">
+    <div className="prose max-w-none prose-headings:mt-0">
       <EditorProvider
         slotBefore={<MenuBar />}
         extensions={extensions}

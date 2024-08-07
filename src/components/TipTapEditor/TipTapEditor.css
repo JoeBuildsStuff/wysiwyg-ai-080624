@@ -13,3 +13,40 @@
 .tiptap.ProseMirror a {
   cursor: pointer; /* Change cursor to hand on hover over links */
 }
+
+/* Styles for all types of lists */
+.prose ul,
+.prose ol,
+.prose ul[data-type="taskList"] {
+  margin-top: 0em;
+  margin-bottom: 0em;
+  padding-top: 0em;
+  padding-bottom: 0em;
+  line-height: 0.5em;
+}
+
+.prose ul[data-type="taskList"] {
+  list-style-type: none;
+  padding-left: 0;
+  line-height: 0em;
+}
+
+.prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: center;
+  line-height: 0em;
+}
+
+.prose ul[data-type="taskList"] li > label {
+  margin-right: 0.5em;
+  line-height: 0em;
+}
+
+.prose ul[data-type="taskList"] li[data-checked="true"] > div p {
+  text-decoration: line-through; /* Strikethrough for completed tasks */
+}
+
+.prose ul[data-type="taskList"] li > div {
+  flex: 1;
+  line-height: 0em;
+}
