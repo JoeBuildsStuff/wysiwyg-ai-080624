@@ -1,5 +1,14 @@
 @import "../../styles/globals.css";
 
+/* Display Placeholders on every new line. */
+.tiptap p.is-empty::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 .tiptap.ProseMirror {
   border: 0.05rem solid #d4d4d4;
   border-radius: 0.5rem;
@@ -22,7 +31,7 @@
   margin-bottom: 0em;
   padding-top: 0em;
   padding-bottom: 0em;
-  line-height: 0.5em;
+  line-height: 1.5em;
 }
 
 .prose ul[data-type="taskList"] {

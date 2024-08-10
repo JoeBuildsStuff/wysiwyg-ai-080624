@@ -20,7 +20,6 @@ const content = `
 <h3>This is a Level 3 Heading</h3>
 <h4>This is a Level 4 Heading</h4>
 <h5>This is a Level 5 Heading</h5>
-<h6>This is a Level 6 Heading</h6>
 
 <h2>Lists</h2>
 

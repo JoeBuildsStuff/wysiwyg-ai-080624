@@ -1,6 +1,10 @@
 "use client";
 
-import { EditorProvider, useCurrentEditor } from "@tiptap/react";
+import { saveAs } from "file-saver";
+import { marked } from "marked";
+import TurndownService from "turndown";
+
+import { EditorProvider, useCurrentEditor, FloatingMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Color } from "@tiptap/extension-color";
 import ListItem from "@tiptap/extension-list-item";
@@ -11,12 +15,32 @@ import Paragraph from "@tiptap/extension-paragraph";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
+import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
 import "./TipTapEditor.css";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "../ui/sheet";
+import {
+  File,
+  BrainCircuit,
+  CircleCheckBig,
+  Circle,
+  CloudDownload,
+  Download,
+  X,
+} from "lucide-react";
+import { Dialog, DialogContent } from "../ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 import Code from "@tiptap/extension-code";
 
@@ -83,12 +107,101 @@ import {
   Link2,
   Link2Off,
   Eraser,
+  Sparkle,
 } from "lucide-react";
-import { Alert } from "../ui/alert";
-import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { useDropzone } from "react-dropzone";
+import { Alert } from "@/components/ui/alert";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+import { getEncoding, encodingForModel } from "js-tiktoken";
+import { Badge } from "../ui/badge";
+
+const enc = getEncoding("cl100k_base");
+
+interface FileWithContent {
+  name: string;
+  title: string;
+  size: number;
+  type: string;
+  lastModified: number;
+  text: string | null;
+  tokens: number;
+}
 
 const MenuBar = () => {
+  const { toast } = useToast();
   const { editor } = useCurrentEditor();
+  const [userPrompt, setUserPrompt] = useState("");
+  const [docContext, setDocContext] = useState("");
+
+  const [addRefContext, setAddRefContext] = useState<FileWithContent[]>([]);
+  const [selectedFile, setSelectedFile] = useState<FileWithContent | null>(
+    null
+  );
+
+  const [includeFullDocument, setIncludeFullDocument] = useState(false);
+  const [includeSelectedReferences, setIncludeSelectedReferences] =
+    useState(false);
+
+  const documentTokens = enc.encode(editor?.getHTML() ?? "").length;
+  const selectedReferencesTokens = addRefContext.reduce(
+    (total, file) => total + file.tokens,
+    0
+  );
+
+  const handleFileClick = (file: FileWithContent) => {
+    setSelectedFile(file);
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = async (event: ProgressEvent<FileReader>) => {
+        const fileContent = event.target?.result as string;
+        const tokens = enc.encode(fileContent).length;
+
+        // Fetch the title from the groq/filename route
+        const response = await fetch("/api/groq/filename", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: fileContent }),
+        });
+        const data = await response.json();
+
+        setAddRefContext((prevFiles) => [
+          ...prevFiles,
+          {
+            name: file.name,
+            title: data.title, // Use the title from the API response
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+            text: fileContent,
+            tokens: tokens,
+          },
+        ]);
+      };
+      reader.readAsText(file);
+    });
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+  const handleFileDelete = useCallback(
+    (fileToDelete: FileWithContent) => {
+      setAddRefContext((prevFiles) =>
+        prevFiles.filter((file) => file.name !== fileToDelete.name)
+      );
+      if (selectedFile && selectedFile.name === fileToDelete.name) {
+        setSelectedFile(null);
+      }
+    },
+    [selectedFile]
+  );
 
   const setLink = useCallback(() => {
     if (!editor) {
@@ -118,9 +231,307 @@ const MenuBar = () => {
     return null;
   }
 
+  const getProposedFileName = async (content: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/groq/filename", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get proposed file name");
+      }
+
+      const data = await response.json();
+      return data.title || "editor-content.txt";
+    } catch (error) {
+      console.error("Error getting proposed file name:", error);
+      return "editor-content.txt";
+    }
+  };
+
+  const handleDownloadTxt = async () => {
+    const content = editor.getText();
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const proposedFileName = await getProposedFileName(content);
+    saveAs(blob, proposedFileName);
+  };
+
+  const handleDownloadHTML = async () => {
+    const content = editor.getHTML();
+    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+    const proposedFileName = await getProposedFileName(editor.getText());
+    saveAs(blob, proposedFileName);
+  };
+
+  const handleDownloadMD = async () => {
+    const htmlContent = editor.getHTML();
+
+    // Convert HTML to Markdown using turndown
+    const turndownService = new TurndownService();
+    const markdown = turndownService.turndown(htmlContent);
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const proposedFileName = await getProposedFileName(editor.getText());
+    saveAs(blob, proposedFileName.replace(/\.[^/.]+$/, "") + ".md");
+  };
+
+  const handleUrlSubmit = async (url: string) => {
+    toast({
+      title: "Sending URL to JinaAI",
+      description: "Please wait...",
+      position: "bottom-right",
+    });
+
+    try {
+      const response = await fetch("/api/jinaai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to get reader from response");
+      }
+
+      let finalContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              console.log("Stream completed");
+              break;
+            }
+            try {
+              const parsedData = JSON.parse(data);
+              if (parsedData.type === "result") {
+                const markdownContent = parsedData.message;
+                const htmlContent = await marked.parse(markdownContent);
+                finalContent = htmlContent;
+              }
+            } catch (parseError) {
+              console.error("Error parsing JSON:", parseError);
+            }
+          }
+        }
+      }
+
+      const responseFileTitle = await fetch("/api/groq/filename", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: finalContent }),
+      });
+      const titleData = await responseFileTitle.json();
+      console.log("titleData", titleData);
+
+      // Create a new file-like object from the received content
+      const newFile: FileWithContent = {
+        name: `${new URL(url).hostname}-${Date.now()}.md`,
+        title: titleData.title, // Use the title from the API response
+        size: new Blob([finalContent]).size,
+        type: "text/markdown",
+        lastModified: Date.now(),
+        text: finalContent,
+        tokens: enc.encode(finalContent).length,
+      };
+
+      // Add the new file to the addRefContext state
+      setAddRefContext((prevFiles) => [...prevFiles, newFile]);
+
+      toast({
+        title: "Content retrieved",
+        description: "The content has been added to your references.",
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.error("Error submitting URL:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process URL. Please try again.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const askAi = async () => {
+    editor.chain().focus().run();
+
+    // Prepare the request body
+    const requestBody: {
+      userPrompt: string;
+      docContext?: string;
+      addRefContext?: FileWithContent[];
+    } = {
+      userPrompt: userPrompt,
+    };
+
+    // Include docContext only if includeFullDocument is true
+    if (includeFullDocument) {
+      requestBody.docContext = editor.getHTML();
+    }
+
+    // Include addRefContext only if includeSelectedReferences is true
+    if (includeSelectedReferences) {
+      requestBody.addRefContext = addRefContext;
+    }
+
+    // Send the current content to the API
+    const response = await fetch("/api/anthropic", {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+    });
+    const data = await response.json();
+    console.log("data", data);
+    const markdownContent = data;
+    console.log("markdownContent", markdownContent);
+    const htmlContent = await marked.parse(markdownContent);
+
+    // Get the current cursor position
+    const currentPos = editor.state.selection.from;
+
+    // Insert the AI response content
+    editor.chain().focus().insertContent(htmlContent).run();
+
+    // Calculate the end position of the inserted content
+    const endPos = currentPos + data.message.length;
+
+    // Select the newly inserted content
+    editor.commands.setTextSelection({ from: currentPos, to: endPos });
+  };
+
   return (
     <div className=" sticky top-0 py-2 z-50 bg-background">
       <div className="flex flex-row gap-2 flex-wrap">
+        {/* AI Context Menu */}
+        <Alert className="flex flex-row p-1 m-0 w-fit ">
+          <Sheet>
+            <SheetTrigger asChild className="w-fit">
+              <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                <BrainCircuit className="w-5 h-5 flex-none" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="min-h-[100dvh] flex flex-col">
+              <SheetHeader>
+                <SheetTitle>Edit Context</SheetTitle>
+                <SheetDescription>
+                  Provide reference content that can be used as context for the
+                  LLM.
+                </SheetDescription>
+              </SheetHeader>
+              <div>
+                <div
+                  {...getRootProps()}
+                  className="border-2 border-dashed border-border p-4 mt-4 text-center rounded-lg"
+                >
+                  <input {...getInputProps()} />
+                  {isDragActive ? (
+                    <p>Drop the files here ...</p>
+                  ) : (
+                    <p>
+                      Drag &apos;n&apos; drop some files here, or click to
+                      select files
+                    </p>
+                  )}
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const url = (e.target as HTMLFormElement).url.value;
+                    handleUrlSubmit(url);
+                  }}
+                  className="flex flex-row gap-2 my-4"
+                >
+                  {/* section for users to paste in a web url and click submit to send url to jinaai route.ts for processing */}
+                  <Input type="text" name="url" placeholder="Enter a web URL" />
+                  <Button type="submit" variant="secondary">
+                    <CloudDownload className="w-5 h-5 flex-none" />
+                  </Button>
+                </form>
+              </div>
+
+              <div className="overflow-y-auto flex-grow">
+                {addRefContext.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="">Files:</h3>
+                    {addRefContext.map((file, index) => (
+                      <Alert
+                        key={index}
+                        className="relative flex items-center cursor-pointer hover:bg-secondary/50 justify-between"
+                        onClick={() => handleFileClick(file)}
+                      >
+                        <div className="flex flex-row items-center mr-5">
+                          <div className="flex h-full">
+                            <File
+                              className="w-8 h-8 flex-none"
+                              strokeWidth={1}
+                            />
+                          </div>
+                          <div className="ml-4">
+                            <div className="font-medium">
+                              {file.title || file.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {(file.size / 1024).toFixed(2)} KB • {file.tokens}{" "}
+                              tokens
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-[.25rem] top-[.25rem] p-1 m-0 h-fit w-fit hover:bg-accent"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFileDelete(file);
+                          }}
+                        >
+                          <X className="w-4 h-4 flex-none text-muted-foreground" />
+                        </Button>
+                      </Alert>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </SheetContent>
+            <Dialog
+              open={!!selectedFile}
+              onOpenChange={() => setSelectedFile(null)}
+            >
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">{selectedFile?.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Size: {(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB •
+                    Tokens: {selectedFile?.tokens}
+                  </p>
+                  <TipTapEditor initialContent={selectedFile?.text ?? ""} />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </Sheet>
+        </Alert>
+
         {/* color and highlight */}
         <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
           <Popover>
@@ -137,7 +548,7 @@ const MenuBar = () => {
             <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
               <ToggleGroup
                 type="single"
-                value={editor.getAttributes("textStyle").color || "default"}
+                value={editor.getAttributes("textStyle").color}
                 className="flex flex-col gap-1"
               >
                 <ToggleGroupItem
@@ -241,7 +652,7 @@ const MenuBar = () => {
                 variant="ghost"
                 className="p-[.35rem] m-0 h-fit w-fit"
                 style={{
-                  color: editor.getAttributes("highlight").color || "#fff",
+                  color: editor.getAttributes("highlight").color,
                 }}
               >
                 <Highlighter className="w-5 h-5 flex-none" />
@@ -477,7 +888,7 @@ const MenuBar = () => {
           >
             <Heading5 className="w-5 h-5 flex-none" />
           </Toggle>
-          <Toggle
+          {/* <Toggle
             onClick={() =>
               editor.chain().focus().toggleHeading({ level: 6 }).run()
             }
@@ -485,7 +896,7 @@ const MenuBar = () => {
             className="p-[.35rem] m-0 h-fit w-fit"
           >
             <Heading6 className="w-5 h-5 flex-none" />
-          </Toggle>
+          </Toggle> */}
         </Alert>
 
         {/* list like bullet, ordered, task, etc. */}
@@ -624,12 +1035,135 @@ const MenuBar = () => {
             {editor.storage.characterCount.characters()} charcters
           </div>
         </Alert>
+
+        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                <Download className="w-5 h-5 flex-none"></Download>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-fit h-fit p-1 m-0 mt-2 flex flex-col gap-1"
+              align="end"
+            >
+              <Button
+                variant="ghost"
+                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                onClick={handleDownloadTxt}
+              >
+                <p>Plain Text</p>{" "}
+                <Badge variant="outline" className="ml-2">
+                  .txt
+                </Badge>
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                onClick={handleDownloadMD}
+              >
+                <p>Markdown</p>{" "}
+                <Badge variant="outline" className="ml-2">
+                  .md
+                </Badge>
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                onClick={handleDownloadHTML}
+              >
+                <p>Web Page</p>{" "}
+                <Badge variant="outline" className="ml-2">
+                  .html
+                </Badge>
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </Alert>
+
+        {/* Floating Menu */}
+        {editor && (
+          <FloatingMenu
+            className="floating-menu ml-[0rem] mt-[9rem] justify-start items-start w-fit"
+            tippyOptions={{ duration: 100 }}
+            editor={editor}
+          >
+            <Alert className="relative p-2 flex flex-col gap-2">
+              <Textarea
+                placeholder="Ask AI"
+                className="h-[3rem] w-[300px] sm:w-[500px] pr-[6rem]"
+                value={userPrompt}
+                onChange={(e) => setUserPrompt(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                className="absolute right-[1rem] top-[1rem]"
+                onClick={askAi}
+              >
+                Create
+              </Button>
+              <div className="flex flex-row gap-2">
+                <Toggle
+                  variant="outline"
+                  defaultPressed={true}
+                  pressed={includeFullDocument}
+                  onPressedChange={setIncludeFullDocument}
+                  className={`flex flex-row gap-2 h-fit py-1 ${
+                    !includeFullDocument ? "text-muted-foreground" : ""
+                  }`}
+                >
+                  {includeFullDocument ? (
+                    <CircleCheckBig className="w-4 h-4 flex-none" />
+                  ) : (
+                    <Circle className="w-4 h-4 flex-none text-muted-foreground" />
+                  )}
+                  <div className="ml-2 flex flex-col md:flex-row text-left items-start">
+                    <div className="">Full Document</div>
+                    <div className="">{documentTokens} Tokens</div>
+                  </div>
+                </Toggle>
+                <Toggle
+                  variant="outline"
+                  defaultPressed={true}
+                  pressed={includeSelectedReferences}
+                  onPressedChange={setIncludeSelectedReferences}
+                  className={`flex flex-row gap-2 h-fit py-1 ${
+                    !includeSelectedReferences ? "text-muted-foreground" : ""
+                  }`}
+                >
+                  {includeSelectedReferences ? (
+                    <CircleCheckBig className="w-4 h-4 flex-none" />
+                  ) : (
+                    <Circle className="w-4 h-4 flex-none text-muted-foreground" />
+                  )}
+                  <div className="ml-2 flex flex-col md:flex-row text-left items-start">
+                    <div className="">References</div>
+
+                    <div className="">{selectedReferencesTokens} tokens</div>
+                  </div>
+                </Toggle>
+              </div>
+            </Alert>
+          </FloatingMenu>
+        )}
       </div>
     </div>
   );
 };
 
 const extensions = [
+  Placeholder.configure({
+    // Use a placeholder:
+    placeholder: "Write something or ask the AI to create something …",
+    // Use different placeholders depending on the node type:
+    // placeholder: ({ node }) => {
+    //   if (node.type.name === "heading") {
+    //     return "What’s the title?";
+    //   }
+
+    //   return "Can you add some further context?";
+    // },
+  }),
   Color.configure({ types: [TextStyle.name, ListItem.name] }),
   TextStyle,
   StarterKit.configure({
