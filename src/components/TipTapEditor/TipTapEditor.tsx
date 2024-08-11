@@ -38,6 +38,7 @@ import {
   CloudDownload,
   Download,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -116,7 +117,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { getEncoding, encodingForModel } from "js-tiktoken";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 
 const enc = getEncoding("cl100k_base");
 
@@ -128,22 +131,28 @@ interface FileWithContent {
   lastModified: number;
   text: string | null;
   tokens: number;
+  url?: string;
 }
 
 const MenuBar = () => {
   const { toast } = useToast();
   const { editor } = useCurrentEditor();
   const [userPrompt, setUserPrompt] = useState("");
-  const [docContext, setDocContext] = useState("");
-
   const [addRefContext, setAddRefContext] = useState<FileWithContent[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileWithContent | null>(
     null
   );
+  //keep track of the cost from askai from input and output tokens
+  //need to keep track of total input and output tokens as an array in cost state
+  const [tokensAskAI, setTokensAskAI] = useState<
+    { inputTokens: number; outputTokens: number }[]
+  >([]);
 
   const [includeFullDocument, setIncludeFullDocument] = useState(false);
   const [includeSelectedReferences, setIncludeSelectedReferences] =
     useState(false);
+
+  const [isLoadingURL, setIsLoadingURL] = useState(false);
 
   const documentTokens = enc.encode(editor?.getHTML() ?? "").length;
   const selectedReferencesTokens = addRefContext.reduce(
@@ -280,11 +289,24 @@ const MenuBar = () => {
   };
 
   const handleUrlSubmit = async (url: string) => {
+    setIsLoadingURL(true);
     toast({
       title: "Sending URL to JinaAI",
       description: "Please wait...",
       position: "bottom-right",
     });
+
+    // Add a skeleton placeholder
+    const skeletonFile: FileWithContent = {
+      name: `loading-${Date.now()}.md`,
+      title: "Loading...",
+      size: 0,
+      type: "text/markdown",
+      lastModified: Date.now(),
+      text: null,
+      tokens: 0,
+    };
+    setAddRefContext((prevFiles) => [...prevFiles, skeletonFile]);
 
     try {
       const response = await fetch("/api/jinaai", {
@@ -352,10 +374,14 @@ const MenuBar = () => {
         lastModified: Date.now(),
         text: finalContent,
         tokens: enc.encode(finalContent).length,
+        url: url,
       };
 
-      // Add the new file to the addRefContext state
-      setAddRefContext((prevFiles) => [...prevFiles, newFile]);
+      // Remove the skeleton and add the actual file
+      setAddRefContext((prevFiles) => [
+        ...prevFiles.filter((file) => file.name !== skeletonFile.name),
+        newFile,
+      ]);
 
       toast({
         title: "Content retrieved",
@@ -364,12 +390,18 @@ const MenuBar = () => {
       });
     } catch (error) {
       console.error("Error submitting URL:", error);
+      // Remove the skeleton on error
+      setAddRefContext((prevFiles) =>
+        prevFiles.filter((file) => file.name !== skeletonFile.name)
+      );
       toast({
         title: "Error",
         description: "Failed to process URL. Please try again.",
         position: "bottom-right",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingURL(false);
     }
   };
 
@@ -401,9 +433,26 @@ const MenuBar = () => {
       body: JSON.stringify(requestBody),
     });
     const data = await response.json();
-    console.log("data", data);
-    const markdownContent = data;
-    console.log("markdownContent", markdownContent);
+
+    //toast message for cost
+    toast({
+      title: "Cost",
+      description: `Input Tokens: ${
+        (data.usage.inputTokens * 3) / 1000000
+      } Output Tokens: ${(data.usage.outputTokens * 15) / 1000000}`,
+      position: "bottom-right",
+    });
+
+    //add the input and output tokens to the tokensAskAI state
+    setTokensAskAI((prevTokens) => [
+      ...prevTokens,
+      {
+        inputTokens: data.usage.inputTokens,
+        outputTokens: data.usage.outputTokens,
+      },
+    ]);
+
+    const markdownContent = data.message;
     const htmlContent = await marked.parse(markdownContent);
 
     // Get the current cursor position
@@ -447,10 +496,10 @@ const MenuBar = () => {
                   {isDragActive ? (
                     <p>Drop the files here ...</p>
                   ) : (
-                    <p>
-                      Drag &apos;n&apos; drop some files here, or click to
-                      select files
-                    </p>
+                    <div className="flex flex-col">
+                      <p>Drag &apos;n&apos; drop files here, </p>
+                      <p> or click to select files</p>
+                    </div>
                   )}
                 </div>
                 <form
@@ -479,23 +528,55 @@ const MenuBar = () => {
                         className="relative flex items-center cursor-pointer hover:bg-secondary/50 justify-between"
                         onClick={() => handleFileClick(file)}
                       >
-                        <div className="flex flex-row items-center mr-5">
-                          <div className="flex h-full">
-                            <File
-                              className="w-8 h-8 flex-none"
-                              strokeWidth={1}
-                            />
-                          </div>
-                          <div className="ml-4">
-                            <div className="font-medium">
-                              {file.title || file.name}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {(file.size / 1024).toFixed(2)} KB • {file.tokens}{" "}
-                              tokens
+                        {file.text === null ? (
+                          // Skeleton placeholder
+                          <div className="flex items-center w-full">
+                            <Skeleton className="h-9 w-8 rounded-lg" />
+                            <div className="ml-4 space-y-2">
+                              <Skeleton className="h-4 w-[200px] rounded-sm" />
+                              <Skeleton className="h-4 w-[150px] rounded-sm" />
+                              <div className="flex flex-row gap-2">
+                                <Skeleton className="h-2 w-[50px] rounded-none" />
+                                <Skeleton className="h-2 w-[50px] rounded-none" />
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          // Actual file content
+                          <div className="flex flex-row items-center mr-5 w-full">
+                            <div className="flex flex-col h-full items-center gap-1">
+                              <File
+                                className="w-8 h-8 flex-none"
+                                strokeWidth={1}
+                              />
+                              {file.url && (
+                                <Badge variant="outline">
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    URL
+                                  </a>
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="ml-4 flex-grow">
+                              <div className="font-medium flex items-center justify-between">
+                                {file.title || file.name}
+                              </div>
+
+                              <div className="text-sm text-muted-foreground flex flex-row gap-1">
+                                <span>
+                                  {(file.size / 1024).toFixed(2)} KB •
+                                </span>
+                                <span> {file.tokens} tokens</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <Button
                           variant="ghost"
@@ -530,6 +611,19 @@ const MenuBar = () => {
               </DialogContent>
             </Dialog>
           </Sheet>
+
+          {/* Display total token cost from AskAI */}
+          {tokensAskAI.length > 0 && (
+            <div className="text-xs text-muted-foreground px-2 ">
+              {tokensAskAI.map((token, index) => (
+                <div key={index}>
+                  Input: ${(token.inputTokens * 3) / 1000000}
+                  <br />
+                  Output: ${(token.outputTokens * 15) / 1000000}
+                </div>
+              ))}
+            </div>
+          )}
         </Alert>
 
         {/* color and highlight */}

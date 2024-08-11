@@ -76,9 +76,20 @@ export async function POST(req: NextRequest) {
     //     }
     //   }
 
+    console.log('msg:', msg);
+
     const responseMessage = msg.content[0].type === 'text' ? msg.content[0].text : '';
 
-    return NextResponse.json(responseMessage, { status: 200 });
+    // Create a response object that includes the message and token usage
+    const response = {
+      message: responseMessage,
+      usage: {
+        inputTokens: msg.usage.input_tokens,
+        outputTokens: msg.usage.output_tokens
+      }
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
