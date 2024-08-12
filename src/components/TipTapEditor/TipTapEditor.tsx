@@ -40,6 +40,7 @@ import {
   X,
   ExternalLink,
   FileDigit,
+  Type,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -121,6 +122,7 @@ import { getEncoding, encodingForModel } from "js-tiktoken";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "../ui/separator";
 
 const enc = getEncoding("cl100k_base");
 
@@ -159,6 +161,7 @@ const MenuBar = () => {
     useState(false);
 
   const [isLoadingURL, setIsLoadingURL] = useState(false);
+  const [isAskAiLoading, setIsAskAiLoading] = useState(false);
 
   const documentTokens = enc.encode(editor?.getHTML() ?? "").length;
   const selectedReferencesTokens = addRefContext.reduce(
@@ -412,7 +415,14 @@ const MenuBar = () => {
   };
 
   const askAi = async () => {
-    editor.chain().focus().run();
+    setIsAskAiLoading(true);
+
+    //toast message for submitting to AI
+    toast({
+      title: "Submitting to AskAI",
+      description: "Please wait...",
+      position: "bottom-right",
+    });
 
     // Prepare the request body
     const requestBody: {
@@ -433,772 +443,892 @@ const MenuBar = () => {
       requestBody.addRefContext = addRefContext;
     }
 
-    // Send the current content to the API
-    const response = await fetch("/api/anthropic", {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
-    const data = await response.json();
+    try {
+      // Send the current content to the API
+      const response = await fetch("/api/anthropic", {
+        method: "POST",
+        body: JSON.stringify(requestBody),
+      });
+      const data = await response.json();
 
-    //toast message for cost
-    toast({
-      title: "Cost",
-      description: `Input Tokens: ${
-        (data.usage.inputTokens * 3) / 1000000
-      } Output Tokens: ${(data.usage.outputTokens * 15) / 1000000}`,
-      position: "bottom-right",
-    });
+      //toast message for cost
+      toast({
+        title: "Cost",
+        description: `Input Tokens: ${
+          (data.usage.inputTokens * 3) / 1000000
+        } Output Tokens: ${(data.usage.outputTokens * 15) / 1000000}`,
+        position: "bottom-right",
+      });
 
-    //add the input and output tokens to the tokensAskAI state
-    setTokensAskAI((prevTokens) => [
-      ...prevTokens,
-      {
-        inputTokens: data.usage.inputTokens,
-        outputTokens: data.usage.outputTokens,
-      },
-    ]);
+      //add the input and output tokens to the tokensAskAI state
+      setTokensAskAI((prevTokens) => [
+        ...prevTokens,
+        {
+          inputTokens: data.usage.inputTokens,
+          outputTokens: data.usage.outputTokens,
+        },
+      ]);
 
-    const markdownContent = data.message;
-    const htmlContent = await marked.parse(markdownContent);
+      const markdownContent = data.message;
+      const htmlContent = await marked.parse(markdownContent);
 
-    // Get the current cursor position
-    const currentPos = editor.state.selection.from;
+      // Get the current cursor position
+      const currentPos = editor.state.selection.from;
 
-    // Insert the AI response content
-    editor.chain().focus().insertContent(htmlContent).run();
+      // Insert the AI response content
+      editor.chain().focus().insertContent(htmlContent).run();
 
-    // Calculate the end position of the inserted content
-    const endPos = currentPos + data.message.length;
+      // Calculate the end position of the inserted content
+      const endPos = currentPos + data.message.length;
 
-    // Select the newly inserted content
-    editor.commands.setTextSelection({ from: currentPos, to: endPos });
+      // Select the newly inserted content
+      editor.commands.setTextSelection({ from: currentPos, to: endPos });
+    } catch (error) {
+      console.error("Error in askAi:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get AI response. Please try again.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAskAiLoading(false);
+    }
   };
 
   return (
     <div className=" sticky top-0 py-2 z-50 bg-background">
-      <div className="flex flex-row gap-2 flex-wrap">
-        {/* AI Context Menu */}
-        <Alert className="flex flex-row p-1 m-0 w-fit ">
-          <Sheet>
-            <SheetTrigger asChild className="w-fit">
-              <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
-                <BrainCircuit className="w-5 h-5 flex-none" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="min-h-[100dvh] flex flex-col">
-              <SheetHeader>
-                <SheetTitle>Edit Context</SheetTitle>
-                <SheetDescription>
-                  Provide reference content that can be used as context for the
-                  LLM.
-                </SheetDescription>
-              </SheetHeader>
-              <div>
-                <div
-                  {...getRootProps()}
-                  className="border-2 border-dashed border-border p-4 mt-4 text-center rounded-lg"
-                >
-                  <input {...getInputProps()} />
-                  {isDragActive ? (
-                    <p>Drop the files here ...</p>
-                  ) : (
-                    <div className="flex flex-col">
-                      <p>Drag &apos;n&apos; drop files here, </p>
-                      <p> or click to select files</p>
+      <div className="flex flex-row w-full justify-between">
+        <div className="flex flex-row gap-2 flex-wrap">
+          {/* AI Context Menu */}
+          <Alert className="flex flex-row p-1 m-0 w-fit ">
+            <Sheet>
+              <SheetTrigger asChild className="w-fit">
+                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                  <BrainCircuit className="w-5 h-5 flex-none" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="min-h-[100dvh] flex flex-col">
+                <SheetHeader>
+                  <SheetTitle>Edit Context</SheetTitle>
+                  <SheetDescription>
+                    Provide reference content that can be used as context for
+                    the LLM.
+                  </SheetDescription>
+                </SheetHeader>
+                <div>
+                  <div
+                    {...getRootProps()}
+                    className="border-2 border-dashed border-border p-4 mt-4 text-center rounded-lg"
+                  >
+                    <input {...getInputProps()} />
+                    {isDragActive ? (
+                      <p>Drop the files here ...</p>
+                    ) : (
+                      <div className="flex flex-col">
+                        <p>Drag &apos;n&apos; drop files here, </p>
+                        <p> or click to select files</p>
+                      </div>
+                    )}
+                  </div>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const url = (e.target as HTMLFormElement).url.value;
+                      handleUrlSubmit(url);
+                    }}
+                    className="flex flex-row gap-2 my-4"
+                  >
+                    {/* section for users to paste in a web url and click submit to send url to jinaai route.ts for processing */}
+                    <Input
+                      type="text"
+                      name="url"
+                      placeholder="Enter a web URL"
+                    />
+                    <Button type="submit" variant="secondary">
+                      <CloudDownload className="w-5 h-5 flex-none" />
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="overflow-y-auto flex-grow">
+                  {addRefContext.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="">Files:</h3>
+                      {addRefContext.map((file, index) => (
+                        <Alert
+                          key={index}
+                          className="relative flex items-center cursor-pointer hover:bg-secondary/50 justify-between"
+                          onClick={() => handleFileClick(file)}
+                        >
+                          {file.text === null ? (
+                            // Skeleton placeholder
+                            <div className="flex items-center w-full">
+                              <Skeleton className="h-9 w-8 rounded-lg" />
+                              <div className="ml-4 space-y-2">
+                                <Skeleton className="h-4 w-[200px] rounded-sm" />
+                                <Skeleton className="h-4 w-[150px] rounded-sm" />
+                                <div className="flex flex-row gap-2">
+                                  <Skeleton className="h-2 w-[50px] rounded-none" />
+                                  <Skeleton className="h-2 w-[50px] rounded-none" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // Actual file content
+                            <div className="flex flex-row items-center mr-5 w-full">
+                              <div className="flex flex-col h-full items-center gap-1">
+                                <FileDigit
+                                  className="w-8 h-8 flex-none"
+                                  strokeWidth={1}
+                                />
+                                {file.url && (
+                                  <Badge variant="outline">
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      URL
+                                    </a>
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="ml-4 flex-grow">
+                                <div className="font-medium flex items-center justify-between">
+                                  {file.title || file.name}
+                                </div>
+
+                                <div className="text-sm text-muted-foreground flex flex-row gap-1">
+                                  <span>
+                                    {(file.size / 1024).toFixed(2)} KB •
+                                  </span>
+                                  <span> {file.tokens} tokens</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-[.25rem] top-[.25rem] p-1 m-0 h-fit w-fit hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileDelete(file);
+                            }}
+                          >
+                            <X className="w-4 h-4 flex-none text-muted-foreground" />
+                          </Button>
+                        </Alert>
+                      ))}
                     </div>
                   )}
                 </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const url = (e.target as HTMLFormElement).url.value;
-                    handleUrlSubmit(url);
-                  }}
-                  className="flex flex-row gap-2 my-4"
-                >
-                  {/* section for users to paste in a web url and click submit to send url to jinaai route.ts for processing */}
-                  <Input type="text" name="url" placeholder="Enter a web URL" />
-                  <Button type="submit" variant="secondary">
-                    <CloudDownload className="w-5 h-5 flex-none" />
-                  </Button>
-                </form>
-              </div>
-
-              <div className="overflow-y-auto flex-grow">
-                {addRefContext.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="">Files:</h3>
-                    {addRefContext.map((file, index) => (
-                      <Alert
-                        key={index}
-                        className="relative flex items-center cursor-pointer hover:bg-secondary/50 justify-between"
-                        onClick={() => handleFileClick(file)}
-                      >
-                        {file.text === null ? (
-                          // Skeleton placeholder
-                          <div className="flex items-center w-full">
-                            <Skeleton className="h-9 w-8 rounded-lg" />
-                            <div className="ml-4 space-y-2">
-                              <Skeleton className="h-4 w-[200px] rounded-sm" />
-                              <Skeleton className="h-4 w-[150px] rounded-sm" />
-                              <div className="flex flex-row gap-2">
-                                <Skeleton className="h-2 w-[50px] rounded-none" />
-                                <Skeleton className="h-2 w-[50px] rounded-none" />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          // Actual file content
-                          <div className="flex flex-row items-center mr-5 w-full">
-                            <div className="flex flex-col h-full items-center gap-1">
-                              <FileDigit
-                                className="w-8 h-8 flex-none"
-                                strokeWidth={1}
-                              />
-                              {file.url && (
-                                <Badge variant="outline">
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-muted-foreground hover:text-foreground"
-                                  >
-                                    URL
-                                  </a>
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="ml-4 flex-grow">
-                              <div className="font-medium flex items-center justify-between">
-                                {file.title || file.name}
-                              </div>
-
-                              <div className="text-sm text-muted-foreground flex flex-row gap-1">
-                                <span>
-                                  {(file.size / 1024).toFixed(2)} KB •
-                                </span>
-                                <span> {file.tokens} tokens</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-[.25rem] top-[.25rem] p-1 m-0 h-fit w-fit hover:bg-accent"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFileDelete(file);
-                          }}
-                        >
-                          <X className="w-4 h-4 flex-none text-muted-foreground" />
-                        </Button>
-                      </Alert>
-                    ))}
+              </SheetContent>
+              <Dialog
+                open={!!selectedFile}
+                onOpenChange={() => setSelectedFile(null)}
+              >
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">{selectedFile?.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Size: {(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB •
+                      Tokens: {selectedFile?.tokens}
+                    </p>
+                    <TipTapEditor initialContent={selectedFile?.text ?? ""} />
                   </div>
-                )}
-              </div>
-            </SheetContent>
-            <Dialog
-              open={!!selectedFile}
-              onOpenChange={() => setSelectedFile(null)}
-            >
-              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2">{selectedFile?.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Size: {(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB •
-                    Tokens: {selectedFile?.tokens}
-                  </p>
-                  <TipTapEditor initialContent={selectedFile?.text ?? ""} />
-                </div>
-              </DialogContent>
-            </Dialog>
-          </Sheet>
+                </DialogContent>
+              </Dialog>
+            </Sheet>
 
-          {/* Display total token cost from AskAI */}
-          {tokensAskAI.length > 0 && (
-            <div className="text-xs text-muted-foreground">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
+            {/* Display total token cost from AskAI */}
+            {tokensAskAI.length > 0 && (
+              <div className="text-xs text-muted-foreground">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="p-[.35rem] m-0 h-fit w-fit"
+                    >
+                      ${totalCost.toFixed(4)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-fit">
+                    <div className="text-xs">
+                      {tokensAskAI.map((token, index) => (
+                        <div key={index} className="flex justify-between gap-2">
+                          <span>Request {index + 1}:</span>
+                          <span>
+                            $
+                            {(
+                              (token.inputTokens * 3 +
+                                token.outputTokens * 15) /
+                              1000000
+                            ).toFixed(4)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </Alert>
+
+          {/* color and highlight */}
+          <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                  <Baseline
+                    className="w-5 h-5 flex-none"
+                    style={{
+                      color: editor.getAttributes("textStyle").color,
+                    }}
+                  ></Baseline>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
+                <ToggleGroup
+                  type="single"
+                  value={editor.getAttributes("textStyle").color}
+                  className="flex flex-col gap-1"
+                >
+                  <ToggleGroupItem
+                    value="#e11d48"
+                    aria-label="toggle rose"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#e11d48").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#e11d48" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#7c3aed"
+                    aria-label="toggle violet"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#7c3aed").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#7c3aed" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#2563eb"
+                    aria-label="toggle blue"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#2563eb").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#2563eb" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#10b981"
+                    aria-label="toggle emerald"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#10b981").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#10b981" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#f59e0b"
+                    aria-label="toggle amber"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#f59e0b").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#737373"
+                    aria-label="toggle neutral"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#737373").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#737373" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#fafafa"
+                    aria-label="toggle white"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#fafafa").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#fafafa" }}
+                    ></div>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+            {/* highlight */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="p-[.35rem] m-0 h-fit w-fit"
+                  style={{
+                    color: editor.getAttributes("highlight").color,
+                  }}
+                >
+                  <Highlighter className="w-5 h-5 flex-none" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
+                <ToggleGroup
+                  type="single"
+                  value={editor.getAttributes("highlight").color}
+                  className="flex flex-col gap-1"
+                >
+                  <ToggleGroupItem
+                    value="#e11d48"
+                    aria-label="toggle rose highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#e11d48" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#e11d48" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#7c3aed"
+                    aria-label="toggle violet highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#7c3aed" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#7c3aed" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#2563eb"
+                    aria-label="toggle blue highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#2563eb" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#2563eb" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#10b981"
+                    aria-label="toggle emerald highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#10b981" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#10b981" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#f59e0b"
+                    aria-label="toggle amber highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#f59e0b" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#737373"
+                    aria-label="toggle neutral highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#737373" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#737373" }}
+                    ></div>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+          </Alert>
+
+          {/* formatting like paragraph, heading, list, etc. */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="secondary"
+                  className="p-[.35rem] m-0 h-fit w-fit"
+                >
+                  {editor.isActive("taskList") ? (
+                    <ListTodo className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("orderedList") ? (
+                    <ListOrdered className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("bulletList") ? (
+                    <List className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("code") ? (
+                    <CodeIcon className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("codeBlock") ? (
+                    <CodeXml className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("blockquote") ? (
+                    <MessageSquareQuote className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("heading", { level: 3 }) ? (
+                    <Heading3 className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("heading", { level: 2 }) ? (
+                    <Heading2 className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("heading", { level: 1 }) ? (
+                    <Heading1 className="w-5 h-5 flex-none" />
+                  ) : editor.isActive("paragraph") ? (
+                    <Type className="w-5 h-5 flex-none" />
+                  ) : null}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="flex flex-col gap-2 w-fit h-fit p-2 m-0 mt-2 justify-start items-start"
+                align="start"
+              >
+                <ToggleGroup
+                  type="single"
+                  value={
+                    editor.isActive("taskList")
+                      ? "taskList"
+                      : editor.isActive("orderedList")
+                      ? "orderedList"
+                      : editor.isActive("bulletList")
+                      ? "bulletList"
+                      : editor.isActive("code")
+                      ? "code"
+                      : editor.isActive("codeBlock")
+                      ? "codeBlock"
+                      : editor.isActive("blockquote")
+                      ? "blockquote"
+                      : editor.isActive("heading", { level: 3 })
+                      ? "heading3"
+                      : editor.isActive("heading", { level: 2 })
+                      ? "heading2"
+                      : editor.isActive("heading", { level: 1 })
+                      ? "heading1"
+                      : editor.isActive("paragraph")
+                      ? "paragraph"
+                      : ""
+                  }
+                  className="flex flex-col gap-1 justify-start items-start "
+                >
+                  <div className="flex flex-col gap-1 justify-start items-start">
+                    <div className="text-sm text-muted-foreground">Text</div>
+                    <div className="flex flex-row gap-1 justify-start items-start">
+                      <ToggleGroupItem
+                        value="paragraph"
+                        aria-label="Paragraph"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().setParagraph().run()
+                        }
+                      >
+                        <Type className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="heading1"
+                        aria-label="Heading 1"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor
+                            .chain()
+                            .focus()
+                            .toggleHeading({ level: 1 })
+                            .run()
+                        }
+                      >
+                        <Heading1 className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="heading2"
+                        aria-label="Heading 2"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor
+                            .chain()
+                            .focus()
+                            .toggleHeading({ level: 2 })
+                            .run()
+                        }
+                      >
+                        <Heading2 className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="heading3"
+                        aria-label="Heading 3"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor
+                            .chain()
+                            .focus()
+                            .toggleHeading({ level: 3 })
+                            .run()
+                        }
+                      >
+                        <Heading3 className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                    </div>
+                  </div>
+                  <Separator className="flex w-full my-2" />
+                  <div className="flex flex-col gap-1 justify-start items-start">
+                    <div className="text-sm text-muted-foreground">Lists</div>
+                    <div className="flex flex-row gap-1 justify-start items-start">
+                      <ToggleGroupItem
+                        value="bulletList"
+                        aria-label="Bullet List"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleBulletList().run()
+                        }
+                      >
+                        <List className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="orderedList"
+                        aria-label="Ordered List"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleOrderedList().run()
+                        }
+                      >
+                        <ListOrdered className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="taskList"
+                        aria-label="Task List"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleTaskList().run()
+                        }
+                      >
+                        <ListTodo className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                    </div>
+                  </div>
+                  <Separator className="flex w-full my-2" />
+                  <div className="flex flex-col gap-1 justify-start items-start">
+                    <div className="text-sm text-muted-foreground">Special</div>
+                    <div className="flex flex-row gap-1 justify-start items-start">
+                      <ToggleGroupItem
+                        value="code"
+                        aria-label="Code"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleCode().run()
+                        }
+                      >
+                        <CodeIcon className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="codeBlock"
+                        aria-label="Code Block"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleCodeBlock().run()
+                        }
+                      >
+                        <CodeXml className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="blockquote"
+                        aria-label="Blockquote"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={() =>
+                          editor.chain().focus().toggleBlockquote().run()
+                        }
+                      >
+                        <MessageSquareQuote className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                    </div>
+                  </div>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+          </Alert>
+
+          {/* alignment like left, center, right, etc. */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="secondary"
+                  className="p-[.35rem] m-0 h-fit w-fit"
+                >
+                  {editor.isActive({ textAlign: "left" }) ? (
+                    <AlignLeft className="w-5 h-5 flex-none" />
+                  ) : editor.isActive({ textAlign: "center" }) ? (
+                    <AlignCenter className="w-5 h-5 flex-none" />
+                  ) : (
+                    <AlignRight className="w-5 h-5 flex-none" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
+                <ToggleGroup
+                  type="single"
+                  value={
+                    editor.isActive({ textAlign: "left" })
+                      ? "left"
+                      : editor.isActive({ textAlign: "center" })
+                      ? "center"
+                      : "right"
+                  }
+                  className="flex flex-col gap-1"
+                >
+                  <ToggleGroupItem
+                    value="left"
+                    aria-label="Left Alignment"
+                    onClick={() =>
+                      editor.chain().focus().setTextAlign("left").run()
+                    }
                     className="p-[.35rem] m-0 h-fit w-fit"
                   >
-                    ${totalCost.toFixed(4)}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-fit">
-                  <div className="text-xs">
-                    {tokensAskAI.map((token, index) => (
-                      <div key={index} className="flex justify-between gap-2">
-                        <span>Request {index + 1}:</span>
-                        <span>
-                          $
-                          {(
-                            (token.inputTokens * 3 + token.outputTokens * 15) /
-                            1000000
-                          ).toFixed(4)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </Alert>
+                    <AlignLeft className="w-5 h-5 flex-none" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="center"
+                    aria-label="Center Alignment"
+                    onClick={() =>
+                      editor.chain().focus().setTextAlign("center").run()
+                    }
+                    className="p-[.35rem] m-0 h-fit w-fit"
+                  >
+                    <AlignCenter className="w-5 h-5 flex-none" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="right"
+                    aria-label="Right Alignment"
+                    onClick={() =>
+                      editor.chain().focus().setTextAlign("right").run()
+                    }
+                    className="p-[.35rem] m-0 h-fit w-fit"
+                  >
+                    <AlignRight className="w-5 h-5 flex-none" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+          </Alert>
 
-        {/* color and highlight */}
-        <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
-                <Baseline
-                  className="w-5 h-5 flex-none"
-                  style={{
-                    color: editor.getAttributes("textStyle").color,
-                  }}
-                ></Baseline>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
-              <ToggleGroup
-                type="single"
-                value={editor.getAttributes("textStyle").color}
-                className="flex flex-col gap-1"
-              >
-                <ToggleGroupItem
-                  value="#e11d48"
-                  aria-label="toggle rose"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#e11d48").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#e11d48" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#7c3aed"
-                  aria-label="toggle violet"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#7c3aed").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#7c3aed" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#2563eb"
-                  aria-label="toggle blue"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#2563eb").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#2563eb" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#10b981"
-                  aria-label="toggle emerald"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#10b981").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#10b981" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#f59e0b"
-                  aria-label="toggle amber"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#f59e0b").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#f59e0b" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#737373"
-                  aria-label="toggle neutral"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#737373").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#737373" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#fafafa"
-                  aria-label="toggle white"
-                  onClick={() =>
-                    editor.chain().focus().setColor("#fafafa").run()
-                  }
-                  className="w-full flex items-center"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#fafafa" }}
-                  ></div>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </PopoverContent>
-          </Popover>
-          {/* highlight */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                className="p-[.35rem] m-0 h-fit w-fit"
-                style={{
-                  color: editor.getAttributes("highlight").color,
-                }}
-              >
-                <Highlighter className="w-5 h-5 flex-none" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
-              <ToggleGroup
-                type="single"
-                value={editor.getAttributes("highlight").color}
-                className="flex flex-col gap-1"
-              >
-                <ToggleGroupItem
-                  value="#e11d48"
-                  aria-label="toggle rose highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#e11d48" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#e11d48" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#7c3aed"
-                  aria-label="toggle violet highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#7c3aed" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#7c3aed" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#2563eb"
-                  aria-label="toggle blue highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#2563eb" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#2563eb" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#10b981"
-                  aria-label="toggle emerald highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#10b981" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#10b981" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#f59e0b"
-                  aria-label="toggle amber highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#f59e0b" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#f59e0b" }}
-                  ></div>
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="#737373"
-                  aria-label="toggle neutral highlight"
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: "#737373" })
-                      .run()
-                  }
-                  className="w-full flex justify-start"
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#737373" }}
-                  ></div>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </PopoverContent>
-          </Popover>
-        </Alert>
+          {/* styles like bold, italic, strikethrough, etc. */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Toggle
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              disabled={!editor.can().chain().focus().toggleBold().run()}
+              pressed={editor.isActive("bold")}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Bold className="w-5 h-5 flex-none" />
+            </Toggle>
+            <Toggle
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              disabled={!editor.can().chain().focus().toggleItalic().run()}
+              pressed={editor.isActive("italic")}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Italic className="w-5 h-5 flex-none" />
+            </Toggle>
+            <Toggle
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              disabled={!editor.can().chain().focus().toggleStrike().run()}
+              pressed={editor.isActive("strike")}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Strikethrough className="w-5 h-5 flex-none" />
+            </Toggle>
 
-        {/* styles like bold, italic, strikethrough, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Toggle
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            disabled={!editor.can().chain().focus().toggleBold().run()}
-            pressed={editor.isActive("bold")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Bold className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            disabled={!editor.can().chain().focus().toggleItalic().run()}
-            pressed={editor.isActive("italic")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Italic className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            disabled={!editor.can().chain().focus().toggleStrike().run()}
-            pressed={editor.isActive("strike")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Strikethrough className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            disabled={!editor.can().chain().focus().toggleCode().run()}
-            pressed={editor.isActive("code")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <CodeIcon className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            pressed={editor.isActive("codeBlock")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <CodeXml className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            pressed={editor.isActive("blockquote")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <MessageSquareQuote className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={setLink}
-            pressed={editor.isActive("link")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Link2 className="w-5 h-5 flex-none" />
-          </Toggle>
-          {/* <Toggle
+            <Toggle
+              onClick={setLink}
+              pressed={editor.isActive("link")}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Link2 className="w-5 h-5 flex-none" />
+            </Toggle>
+            {/* <Toggle
             onClick={() => editor.chain().focus().unsetLink().run()}
             disabled={!editor.isActive("link")}
             className="p-[.35rem] m-0 h-fit w-fit"
           >
             <Link2Off className="w-5 h-5 flex-none" />
           </Toggle> */}
-        </Alert>
+          </Alert>
 
-        {/* formatting like paragraph, heading, list, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          {/* <Toggle
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          pressed={editor.isActive("paragraph")}
-        >
-          <Pilcrow className="w-5 h-5 flex-none" />
-        </Toggle> */}
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 1 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 1 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading1 className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 2 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 2 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading2 className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 3 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 3 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading3 className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 4 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 4 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading4 className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 5 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 5 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading5 className="w-5 h-5 flex-none" />
-          </Toggle>
-          {/* <Toggle
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 6 }).run()
-            }
-            pressed={editor.isActive("heading", { level: 6 })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Heading6 className="w-5 h-5 flex-none" />
-          </Toggle> */}
-        </Alert>
-
-        {/* list like bullet, ordered, task, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Toggle
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            pressed={editor.isActive("bulletList")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <List className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            pressed={editor.isActive("orderedList")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <ListOrdered className="w-5 h-5 flex-none" />
-          </Toggle>
-
-          <Toggle
-            onClick={() => editor.chain().focus().toggleTaskList().run()}
-            pressed={editor.isActive("taskList")}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <ListTodo className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().sinkListItem("taskItem").run()
-            }
-            disabled={!editor.can().sinkListItem("taskItem")}
-            pressed={editor.isActive("taskItem", { nested: true })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <IndentIncrease className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() =>
-              editor.chain().focus().liftListItem("taskItem").run()
-            }
-            disabled={!editor.can().liftListItem("taskItem")}
-            pressed={editor.isActive("taskItem", { nested: true })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <IndentDecrease className="w-5 h-5 flex-none" />
-          </Toggle>
-        </Alert>
-
-        {/* alignment like left, center, right, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Toggle
-            onClick={() => editor.chain().focus().setTextAlign("left").run()}
-            pressed={editor.isActive({ textAlign: "left" })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <AlignLeft className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().setTextAlign("center").run()}
-            pressed={editor.isActive({ textAlign: "center" })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <AlignCenter className="w-5 h-5 flex-none" />
-          </Toggle>
-          <Toggle
-            onClick={() => editor.chain().focus().setTextAlign("right").run()}
-            pressed={editor.isActive({ textAlign: "right" })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <AlignRight className="w-5 h-5 flex-none" />
-          </Toggle>
-          {/* <Toggle
-            onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-            pressed={editor.isActive({ textAlign: "justify" })}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <AlignJustify className="w-5 h-5 flex-none" />
-          </Toggle> */}
-        </Alert>
-
-        {/* horizontal rule */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Button
-            variant="ghost"
-            onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Minus className="w-5 h-5 flex-none" />
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => editor.chain().focus().setHardBreak().run()}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <SeparatorHorizontal className="w-5 h-5 flex-none" />
-          </Button>
-        </Alert>
-
-        {/* undo, redo, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Button
-            variant="ghost"
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().chain().focus().undo().run()}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Undo2 className="w-5 h-5 flex-none" />
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().chain().focus().redo().run()}
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Redo2 className="w-5 h-5 flex-none" />
-          </Button>
-        </Alert>
-
-        {/* other like unset all marks, clear nodes, etc. */}
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Button
-            variant="ghost"
-            onClick={() =>
-              editor.chain().focus().unsetAllMarks().clearNodes().run()
-            }
-            className="p-[.35rem] m-0 h-fit w-fit"
-          >
-            <Eraser className="w-5 h-5 flex-none" />
-          </Button>
-        </Alert>
-
-        <Alert className="flex flex-row p-1 px-2 m-0 h-fit w-fit gap-1">
-          <div className="text-xs text-muted-foreground">
-            {editor.storage.characterCount.words()} words
-            <br />
-            {editor.storage.characterCount.characters()} charcters
-          </div>
-        </Alert>
-
-        <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
-                <Download className="w-5 h-5 flex-none"></Download>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-fit h-fit p-1 m-0 mt-2 flex flex-col gap-1"
-              align="end"
+          {/* horizontal rule */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Button
+              variant="ghost"
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+              className="p-[.35rem] m-0 h-fit w-fit"
             >
-              <Button
-                variant="ghost"
-                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
-                onClick={handleDownloadTxt}
+              <Minus className="w-5 h-5 flex-none" />
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => editor.chain().focus().setHardBreak().run()}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <SeparatorHorizontal className="w-5 h-5 flex-none" />
+            </Button>
+          </Alert>
+
+          {/* other like unset all marks, clear nodes, etc. */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                editor.chain().focus().unsetAllMarks().clearNodes().run()
+              }
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Eraser className="w-5 h-5 flex-none" />
+            </Button>
+          </Alert>
+
+          {/* undo, redo, etc. */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Button
+              variant="ghost"
+              onClick={() => editor.chain().focus().undo().run()}
+              disabled={!editor.can().chain().focus().undo().run()}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Undo2 className="w-5 h-5 flex-none" />
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => editor.chain().focus().redo().run()}
+              disabled={!editor.can().chain().focus().redo().run()}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <Redo2 className="w-5 h-5 flex-none" />
+            </Button>
+          </Alert>
+        </div>
+
+        <div className="flex flex-row gap-2 flex-wrap items-end justify-end">
+          {/* Words and Char Counts */}
+          <Alert className="flex flex-row p-1 px-2 m-0 h-fit w-fit gap-1">
+            <div className="text-xs text-muted-foreground">
+              {editor.storage.characterCount.words()} words
+              <br />
+              {editor.storage.characterCount.characters()} chars
+            </div>
+          </Alert>
+
+          {/* Download as different formats */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                  <Download className="w-5 h-5 flex-none"></Download>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-fit h-fit p-1 m-0 mt-2 flex flex-col gap-1"
+                align="end"
               >
-                <p>Plain Text</p>{" "}
-                <Badge variant="outline" className="ml-2">
-                  .txt
-                </Badge>
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
-                onClick={handleDownloadMD}
-              >
-                <p>Markdown</p>{" "}
-                <Badge variant="outline" className="ml-2">
-                  .md
-                </Badge>
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full text-left items-start justify-between h-fit px-2 py-1 "
-                onClick={handleDownloadHTML}
-              >
-                <p>Web Page</p>{" "}
-                <Badge variant="outline" className="ml-2">
-                  .html
-                </Badge>
-              </Button>
-            </PopoverContent>
-          </Popover>
-        </Alert>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                  onClick={handleDownloadTxt}
+                >
+                  <p>Plain Text</p>{" "}
+                  <Badge variant="outline" className="ml-2">
+                    .txt
+                  </Badge>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                  onClick={handleDownloadMD}
+                >
+                  <p>Markdown</p>{" "}
+                  <Badge variant="outline" className="ml-2">
+                    .md
+                  </Badge>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left items-start justify-between h-fit px-2 py-1 "
+                  onClick={handleDownloadHTML}
+                >
+                  <p>Web Page</p>{" "}
+                  <Badge variant="outline" className="ml-2">
+                    .html
+                  </Badge>
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </Alert>
+        </div>
 
         {/* Floating Menu */}
         {editor && (
@@ -1212,14 +1342,29 @@ const MenuBar = () => {
                 placeholder="Ask AI"
                 className="h-[3rem] w-[300px] sm:w-[500px] pr-[6rem]"
                 value={userPrompt}
+                disabled={isAskAiLoading}
                 onChange={(e) => setUserPrompt(e.target.value)}
               />
               <Button
                 variant="outline"
                 className="absolute right-[1rem] top-[1rem]"
                 onClick={askAi}
+                disabled={isAskAiLoading}
               >
-                Create
+                {isAskAiLoading ? (
+                  <span
+                    className="loader"
+                    style={
+                      {
+                        "--loader-size": "18px",
+                        "--loader-color": "#000",
+                        "--loader-color-dark": "#fff",
+                      } as React.CSSProperties
+                    }
+                  ></span>
+                ) : (
+                  "Create"
+                )}
               </Button>
               <div className="flex flex-row gap-2">
                 <Toggle
@@ -1329,7 +1474,7 @@ const extensions = [
 ];
 
 interface TipTapEditorProps {
-  initialContent: string;
+  initialContent?: string;
 }
 
 // Update the TipTapEditor component to accept props

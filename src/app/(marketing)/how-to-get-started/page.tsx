@@ -1,73 +1,140 @@
-import Image from "next/image";
 import Link from "next/link";
 
-import introduction from "@/app/(marketing)/how-to-get-started/images/introduction.gif";
-import { Alert } from "@/components/ui/alert";
+import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
 
-import { metadata } from "@/lib/constants";
+const content = `
+<h1>Welcome to my implementation of TipTap Rich Text Editor!</h1>
 
-export default function Component() {
-  const title = metadata.other?.["application-name"] || "Enter App Name";
+<p>This is a <strong>powerful</strong> and <em>flexible</em> editor with a wide range of features. Let's explore some of its capabilities:</p>
 
+<h2>Text Formatting</h2>
+
+<p>You can make text <strong>bold</strong>, <em>italic</em>, or <s>strikethrough</s>. You can also use <code>inline code</code> for technical terms.</p>
+
+<h2>Headings</h2>
+
+<h1>This is a Level 1 Heading</h1>
+<h2>This is a Level 2 Heading</h2>
+<h3>This is a Level 3 Heading</h3>
+<h4>This is a Level 4 Heading</h4>
+<h5>This is a Level 5 Heading</h5>
+
+<h2>Lists</h2>
+
+<h3>Bullet List</h3>
+<ul>
+  <li>First item</li>
+  <li>Second item</li>
+  <li>Third item</li>
+</ul>
+
+<h3>Ordered List</h3>
+<ol>
+  <li>First step</li>
+  <li>Second step</li>
+  <li>Third step</li>
+</ol>
+
+<h3>Task List</h3>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true">Completed task</li>
+  <li data-type="taskItem" data-checked="false">Pending task</li>
+  <li data-type="taskItem" data-checked="false">Another pending task</li>
+</ul>
+
+<h2>Quotes and Code Blocks</h2>
+
+<blockquote>
+  <p>This is a blockquote. It's perfect for emphasizing important information or citing sources.</p>
+</blockquote>
+
+<pre><code class="language-javascript">function greet(name) {
+  console.log(hello Joe!);
+}
+
+greet('TipTap User');</code></pre>
+
+<h2>Text Alignment</h2>
+
+<p style="text-align: left">This text is aligned to the left (default).</p>
+<p style="text-align: center">This text is centered.</p>
+<p style="text-align: right">This text is aligned to the right.</p>
+
+<h2>Colors and Highlighting</h2>
+
+<p><span style="color: #e11d48;">This text is in rose color.</span></p>
+<p><span style="color: #7c3aed;">This text is in violet color.</span></p>
+<p><mark style="background-color: #10b981;">This text has an emerald highlight.</span></p>
+<p><mark style="background-color: #f59e0b;">This text has an amber highlight.</span></p>
+
+<h2>Links</h2>
+
+<p>You can add <a href="https://tiptap.dev/">links to external websites</a> or internal references.</p>
+
+<hr>
+
+<p>Feel free to experiment with these features and discover the full potential of the TipTap editor!</p>
+
+<h2>Future Improvements Checklist</h2>
+
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true">Add word count and character count</li>
+    <li data-type="taskItem" data-checked="true">Make the fixed menu sticky</li>
+  <li data-type="taskItem" data-checked="true">Add code highlighting</li>
+  <li data-type="taskItem" data-checked="true">Add button to copy code snippets from code blocks</li>
+  <li data-type="taskItem" data-checked="true">Add toggle for syntax to use in code blocks</li>
+  <li data-type="taskItem" data-checked="false">Add image support</li>
+  <li data-type="taskItem" data-checked="false">Add table support</li>
+  <li data-type="taskItem" data-checked="false">Add bubble menu</li>
+  <li data-type="taskItem" data-checked="true">Add floating menu</li>
+  <li data-type="taskItem" data-checked="false">Add dark mode and light mode for text color and highlight colors</li>
+  <li data-type="taskItem" data-checked="true">Add Ability to Request AI-Generated Text</li>
+  <li data-type="taskItem" data-checked="true">Add Ability to Upload Additional References</li>
+  <li data-type="taskItem" data-checked="true">Add Ability to Retrieve References from URLs</li>
+  <li data-type="taskItem" data-checked="true">Add Ability to Review and Read References</li>
+  <li data-type="taskItem" data-checked="false">Add option to copy all content as Markdown or HTML</li>
+  <li data-type="taskItem" data-checked="true">Add export functionality to TXT, MD, or HTML</li>
+  <li data-type="taskItem" data-checked="false">Add ability to paste in Markdown or HTML</li>
+  <li data-type="taskItem" data-checked="false">Add feature to retrieve AI-generated images</li>
+  <li data-type="taskItem" data-checked="false">Experiment with custom components (e.g., a button)</li>
+</ul>
+`;
+
+export default async function Home() {
   return (
-    <div className="w-full">
-      <header className="py-12 md:py-16 lg:py-20 border-b border-border">
-        <div className="container px-4 md:px-6">
-          <div className="max-w-3xl space-y-4">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-              How to Get Started with {title}
+    <div>
+      <section className="w-full py-[5rem]">
+        <div className="flex flex-col justify-center space-y-4">
+          <div className="mx-3 space-y-2 lg:space-y-3 max-w-md md:max-w-2xl lg:max-w-3xl">
+            <h1 className="leading-tight lg::leading-snug font-black text-5xl lg:text-7xl ">
+              Welcome to my version of WYSIWYG
             </h1>
-            <p className="text-muted-foreground md:text-xl/relaxed">
-              Your comprehensive guide to mastering AI-powered art creation and
-              boosting your creativity
+            <p className="leading-normal text-xl text-muted-foreground">
+              Welp, the plan is to create a WYSIWYG editor that is easy to use
+              and has a lot of features... max AI features that is.
             </p>
           </div>
-        </div>
-      </header>
-      <div className="container grid gap-12 px-4 py-12 md:grid-cols-[300px_1fr] md:gap-16 md:py-16 lg:py-20">
-        <nav className="hidden md:block sticky top-20 self-start max-h-[calc(100vh-5rem)]  pr-4">
-          <h2 className="text-base font-semibold p-4 bg-secondary/80 rounded-lg mb-4">
-            IN THIS GUIDE
-          </h2>
-          <ul className="space-y-4 overflow-y-auto">
-            {[
-              {
-                href: "#introduction",
-                text: "Welcome to {title}",
-              },
-            ].map((item, index) => (
-              <li key={index} className="ml-4">
-                <Link
-                  href={item.href}
-                  className="text-sm font-medium hover:underline toc-link"
-                >
-                  {item.text}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="prose prose-xl max-w-3xl" id="content">
-          <section id="introduction" className="scroll-mt-20">
-            <h1 className="scroll-mt-20">Introduction: Welcome to {title}</h1>
-            <p>Ladies and gentlemen, welcome...</p>
-            <figure>
-              <Image
-                src={introduction}
-                alt="{title} application"
-                width={500}
-                height={500}
-                loading="lazy"
-                className="rounded-lg shadow-md border border-gray-200 mx-auto"
-              />
-              <figcaption
-                id="caption"
-                className="text-center text-muted-foreground"
+          <div className="flex flex-row items-center space-x-4 pt-4">
+            {/* <Button
+                asChild
+                variant="default"
+                className="mx-3 w-40 text-lg h-12 lg:h-14 lg:rounded-lg lg:text-xl"
               >
-                Type in a simple description for an image and get started!
-              </figcaption>
-            </figure>
-          </section>
+                <Link href="/create">Get Started</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="mx-3 w-40 text-lg h-12 lg:h-14 lg:rounded-xl lg:text-xl"
+              >
+                <Link href="/how-to-get-started">Learn More</Link>
+              </Button> */}
+          </div>
+        </div>
+      </section>
+      <div className="px-4 pb-10">
+        <div className="max-w-4xl mx-auto ">
+          <TipTapEditor initialContent={content} />
         </div>
       </div>
     </div>

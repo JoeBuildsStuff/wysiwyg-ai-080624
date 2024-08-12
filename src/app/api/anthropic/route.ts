@@ -76,8 +76,6 @@ export async function POST(req: NextRequest) {
     //     }
     //   }
 
-    console.log('msg:', msg);
-
     const responseMessage = msg.content[0].type === 'text' ? msg.content[0].text : '';
 
     // Create a response object that includes the message and token usage

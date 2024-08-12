@@ -10,9 +10,9 @@
 }
 
 .tiptap.ProseMirror {
-  border: 0.05rem solid #d4d4d4;
+  /* border: 0.05rem solid #d4d4d4; */
   border-radius: 0.5rem;
-  padding: 1rem;
+  /* padding: 1rem; */
   margin: 0;
   margin-top: 0.5rem;
   user-select: none;
@@ -58,6 +58,22 @@
 .prose ul[data-type="taskList"] li > div {
   flex: 1;
   line-height: 0em;
+}
+
+/* code styles */
+.tiptap :not(pre) > code {
+  background-color: #f0f0f0;
+  border-radius: 0.25rem;
+  font-family: "JetBrainsMono", monospace;
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  color: #d16969;
+}
+
+/* Hide backticks in inline code */
+.tiptap :not(pre) > code::before,
+.tiptap :not(pre) > code::after {
+  content: none;
 }
 
 /* Code block styles */
