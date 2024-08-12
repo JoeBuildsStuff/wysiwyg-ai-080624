@@ -469,6 +469,9 @@ const MenuBar = () => {
         },
       ]);
 
+      console.log("data", data);
+      console.log("data.message", data.message);
+
       const markdownContent = data.message;
       const htmlContent = await marked.parse(markdownContent);
 
@@ -484,6 +487,7 @@ const MenuBar = () => {
       // Select the newly inserted content
       editor.commands.setTextSelection({ from: currentPos, to: endPos });
     } catch (error) {
+      console.log("error", error);
       console.error("Error in askAi:", error);
       toast({
         title: "Error",
