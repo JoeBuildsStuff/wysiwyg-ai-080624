@@ -444,14 +444,12 @@ const MenuBar = () => {
     }
 
     try {
-      // Send the current content to the API
       const response = await fetch("/api/anthropic", {
         method: "POST",
         body: JSON.stringify(requestBody),
       });
       const data = await response.json();
 
-      //toast message for cost
       toast({
         title: "Cost",
         description: `Input Tokens: ${
@@ -460,7 +458,6 @@ const MenuBar = () => {
         position: "bottom-right",
       });
 
-      //add the input and output tokens to the tokensAskAI state
       setTokensAskAI((prevTokens) => [
         ...prevTokens,
         {
@@ -473,7 +470,20 @@ const MenuBar = () => {
       console.log("data.message", data.message);
 
       const markdownContent = data.message;
-      const htmlContent = await marked.parse(markdownContent);
+      let htmlContent;
+
+      // Check if the content is a code block
+      if (
+        markdownContent.startsWith("```") &&
+        markdownContent.endsWith("```")
+      ) {
+        // It's a code block, so we'll use the syntax highlighter
+        const codeContent = markdownContent.slice(3, -3).trim();
+        htmlContent = `<pre><code>${codeContent}</code></pre>`;
+      } else {
+        // It's not a code block, so we'll parse it as regular markdown
+        htmlContent = await marked.parse(markdownContent);
+      }
 
       // Get the current cursor position
       const currentPos = editor.state.selection.from;
@@ -487,7 +497,6 @@ const MenuBar = () => {
       // Select the newly inserted content
       editor.commands.setTextSelection({ from: currentPos, to: endPos });
     } catch (error) {
-      console.log("error", error);
       console.error("Error in askAi:", error);
       toast({
         title: "Error",
