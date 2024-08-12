@@ -31,14 +31,15 @@ import {
   SheetTrigger,
 } from "../ui/sheet";
 import {
-  File,
   BrainCircuit,
+  File,
   CircleCheckBig,
   Circle,
   CloudDownload,
   Download,
   X,
   ExternalLink,
+  FileDigit,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -147,6 +148,11 @@ const MenuBar = () => {
   const [tokensAskAI, setTokensAskAI] = useState<
     { inputTokens: number; outputTokens: number }[]
   >([]);
+
+  // Calculate total cost
+  const totalCost = tokensAskAI.reduce((acc, token) => {
+    return acc + (token.inputTokens * 3 + token.outputTokens * 15) / 1000000;
+  }, 0);
 
   const [includeFullDocument, setIncludeFullDocument] = useState(false);
   const [includeSelectedReferences, setIncludeSelectedReferences] =
@@ -545,7 +551,7 @@ const MenuBar = () => {
                           // Actual file content
                           <div className="flex flex-row items-center mr-5 w-full">
                             <div className="flex flex-col h-full items-center gap-1">
-                              <File
+                              <FileDigit
                                 className="w-8 h-8 flex-none"
                                 strokeWidth={1}
                               />
@@ -614,14 +620,33 @@ const MenuBar = () => {
 
           {/* Display total token cost from AskAI */}
           {tokensAskAI.length > 0 && (
-            <div className="text-xs text-muted-foreground px-2 ">
-              {tokensAskAI.map((token, index) => (
-                <div key={index}>
-                  Input: ${(token.inputTokens * 3) / 1000000}
-                  <br />
-                  Output: ${(token.outputTokens * 15) / 1000000}
-                </div>
-              ))}
+            <div className="text-xs text-muted-foreground">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="p-[.35rem] m-0 h-fit w-fit"
+                  >
+                    ${totalCost.toFixed(4)}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-fit">
+                  <div className="text-xs">
+                    {tokensAskAI.map((token, index) => (
+                      <div key={index} className="flex justify-between gap-2">
+                        <span>Request {index + 1}:</span>
+                        <span>
+                          $
+                          {(
+                            (token.inputTokens * 3 + token.outputTokens * 15) /
+                            1000000
+                          ).toFixed(4)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
         </Alert>
@@ -1211,8 +1236,10 @@ const MenuBar = () => {
                   ) : (
                     <Circle className="w-4 h-4 flex-none text-muted-foreground" />
                   )}
-                  <div className="ml-2 flex flex-col md:flex-row text-left items-start">
-                    <div className="">Full Document</div>
+                  <div className="flex flex-row text-left items-center">
+                    <div className="">
+                      <FileDigit className="w-4 h-4 flex-none mr-2" />
+                    </div>
                     <div className="">{documentTokens} Tokens</div>
                   </div>
                 </Toggle>
@@ -1230,9 +1257,10 @@ const MenuBar = () => {
                   ) : (
                     <Circle className="w-4 h-4 flex-none text-muted-foreground" />
                   )}
-                  <div className="ml-2 flex flex-col md:flex-row text-left items-start">
-                    <div className="">References</div>
-
+                  <div className="flex flex-row text-left items-center">
+                    <div className="">
+                      <BrainCircuit className="w-4 h-4 flex-none mr-2" />
+                    </div>
                     <div className="">{selectedReferencesTokens} tokens</div>
                   </div>
                 </Toggle>
