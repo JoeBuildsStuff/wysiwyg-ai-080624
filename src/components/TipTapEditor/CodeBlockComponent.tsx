@@ -12,6 +12,7 @@ import {
 
 const CodeBlockComponent = ({ node, updateAttributes, extension }: any) => {
   const [copied, setCopied] = useState(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
 
   const selectLanguage = (language: string) => {
     updateAttributes({ language });
@@ -25,16 +26,22 @@ const CodeBlockComponent = ({ node, updateAttributes, extension }: any) => {
   };
 
   return (
-    <NodeViewWrapper className="relative">
+    <NodeViewWrapper className="relative group">
       <pre className="rounded-md">
-        <NodeViewContent as="code" />
+        <NodeViewContent as="code" className="" />
       </pre>
-      <div className="absolute top-2 right-2 flex items-center space-x-2">
+      <div
+        className={`absolute -top-[2.25rem] right-0 flex items-center space-x-2 border border-border rounded-md px-1 bg-background transition-opacity duration-200 ${
+          isSelectOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
+      >
+        {" "}
         <Select
           value={node.attrs.language || "auto"}
           onValueChange={selectLanguage}
+          onOpenChange={setIsSelectOpen}
         >
-          <SelectTrigger className="w-fit pr-4 bg-secondary">
+          <SelectTrigger className="w-fit pr-4 bg-background border-none p-1 h-fit">
             <SelectValue placeholder="Language" className="mr-4" />
             <span className="w-2"></span>
           </SelectTrigger>
@@ -47,7 +54,8 @@ const CodeBlockComponent = ({ node, updateAttributes, extension }: any) => {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="secondary" onClick={copyCode}>
+        <div className="flex w-[1px] h-5 bg-border"></div>
+        <Button variant="ghost" onClick={copyCode} className="p-[.35rem] h-fit">
           {copied ? (
             <Check className="h-4 w-4" />
           ) : (
