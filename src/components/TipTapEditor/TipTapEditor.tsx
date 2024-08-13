@@ -400,6 +400,7 @@ const MenuBar = () => {
         throw new Error("Failed to get reader from response");
       }
 
+      let buffer = "";
       let finalContent = "";
 
       while (true) {
@@ -408,6 +409,7 @@ const MenuBar = () => {
 
         const chunk = new TextDecoder().decode(value);
         const lines = chunk.split("\n");
+
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6).trim();
@@ -415,19 +417,35 @@ const MenuBar = () => {
               console.log("Stream completed");
               break;
             }
+
+            buffer += data;
+
             try {
-              const parsedData = JSON.parse(data);
+              console.log("Attempting to parse buffer:", buffer);
+              const parsedData = JSON.parse(buffer);
+              console.log("Successfully parsed data:", parsedData);
+
               if (parsedData.type === "result") {
                 const markdownContent = parsedData.message;
                 const htmlContent = await marked.parse(markdownContent);
-                finalContent = htmlContent;
+                finalContent += htmlContent; // Append to finalContent instead of overwriting
               }
+
+              buffer = ""; // Clear buffer after successful parse
             } catch (parseError) {
-              console.error("Error parsing JSON:", parseError);
+              if (parseError instanceof SyntaxError) {
+                console.log("Incomplete JSON, continuing to buffer");
+                // Continue buffering as this might be an incomplete JSON object
+              } else {
+                console.error("Unexpected error parsing JSON:", parseError);
+                buffer = ""; // Clear buffer on unexpected errors
+              }
             }
           }
         }
       }
+
+      console.log("Final content:", finalContent);
 
       const responseFileTitle = await fetch("/api/groq/filename", {
         method: "POST",
