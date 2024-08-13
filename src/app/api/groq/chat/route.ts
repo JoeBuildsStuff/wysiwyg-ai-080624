@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
         "stop": null
       });
 
+      console.log("chatCompletion", chatCompletion);
+
        const responseMessage = chatCompletion.choices[0].message.content;
 
        const response = {

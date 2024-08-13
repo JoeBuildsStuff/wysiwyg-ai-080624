@@ -17,6 +17,8 @@ import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
+import Image from "@tiptap/extension-image";
+import { ResizableImage } from "./exstension/ResizeImage/resizable-image";
 import React, { useCallback, useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
@@ -41,6 +43,7 @@ import {
   ExternalLink,
   FileDigit,
   Type,
+  FileImage,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -200,6 +203,21 @@ const MenuBar = () => {
 
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
+  const addImage = useCallback(() => {
+    if (editor) {
+      const url = "";
+      const title = "";
+      editor
+        .chain()
+        .focus()
+        .setResizableImage({
+          src: url,
+          title: title,
+        })
+        .run();
+    }
+  }, [editor]);
+
   useEffect(() => {
     const fetchUser = async () => {
       const {
@@ -209,11 +227,8 @@ const MenuBar = () => {
       if (error) {
         console.error("Error fetching user:", error);
       } else {
-        console.log("user", user?.created_at);
         setUser(user);
       }
-
-      console.log("user", user?.role);
     };
 
     fetchUser();
@@ -1255,6 +1270,20 @@ const MenuBar = () => {
                       </ToggleGroupItem>
                     </div>
                   </div>
+                  <Separator className="flex w-full my-2" />
+                  <div className="flex flex-col gap-1 justify-start items-start">
+                    <div className="text-sm text-muted-foreground">Media</div>
+                    <div className="flex flex-row gap-1 justify-start items-start">
+                      <ToggleGroupItem
+                        value="addImage"
+                        aria-label="Add Image"
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                        onClick={addImage}
+                      >
+                        <FileImage className="w-5 h-5 flex-none" />
+                      </ToggleGroupItem>
+                    </div>
+                  </div>
                 </ToggleGroup>
               </PopoverContent>
             </Popover>
@@ -1618,6 +1647,8 @@ const extensions = [
   Link,
   CharacterCount,
   SlashCommand,
+  Image,
+  ResizableImage,
 ];
 
 interface TipTapEditorProps {
