@@ -17,7 +17,7 @@ import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
 import "./TipTapEditor.css";
@@ -64,6 +64,19 @@ import typescript from "highlight.js/lib/languages/typescript";
 import html from "highlight.js/lib/languages/xml";
 import css from "highlight.js/lib/languages/css";
 import python from "highlight.js/lib/languages/python";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { SlashCommand } from "./SlashCommandList";
+import { createClient } from "@/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 // Create a lowlight instance
 const lowlight = createLowlight(all);
@@ -124,6 +137,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "../ui/separator";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
+
 const enc = getEncoding("cl100k_base");
 
 interface FileWithContent {
@@ -138,6 +162,7 @@ interface FileWithContent {
 }
 
 const MenuBar = () => {
+  const supabase = createClient();
   const { toast } = useToast();
   const { editor } = useCurrentEditor();
   const [userPrompt, setUserPrompt] = useState("");
@@ -156,9 +181,9 @@ const MenuBar = () => {
     return acc + (token.inputTokens * 3 + token.outputTokens * 15) / 1000000;
   }, 0);
 
-  const [includeFullDocument, setIncludeFullDocument] = useState(false);
+  const [includeFullDocument, setIncludeFullDocument] = useState(true);
   const [includeSelectedReferences, setIncludeSelectedReferences] =
-    useState(false);
+    useState(true);
 
   const [isLoadingURL, setIsLoadingURL] = useState(false);
   const [isAskAiLoading, setIsAskAiLoading] = useState(false);
@@ -168,6 +193,31 @@ const MenuBar = () => {
     (total, file) => total + file.tokens,
     0
   );
+
+  const [LLM_Model, setLLM_Model] = useState("llama3.1_70B");
+
+  const [user, setUser] = useState<User | null>(null);
+
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+      } else {
+        console.log("user", user?.created_at);
+        setUser(user);
+      }
+
+      console.log("user", user?.role);
+    };
+
+    fetchUser();
+  }, []);
 
   const handleFileClick = (file: FileWithContent) => {
     setSelectedFile(file);
@@ -443,8 +493,13 @@ const MenuBar = () => {
       requestBody.addRefContext = addRefContext;
     }
 
+    // Determine the API route based on the selected LLM model
+    const apiRoute =
+      LLM_Model === "sonnet_3.5" ? "/api/anthropic" : "/api/groq/chat";
+
     try {
-      const response = await fetch("/api/anthropic", {
+      const response = await fetch(apiRoute, {
+        // Use the determined API route
         method: "POST",
         body: JSON.stringify(requestBody),
       });
@@ -465,9 +520,6 @@ const MenuBar = () => {
           outputTokens: data.usage.outputTokens,
         },
       ]);
-
-      console.log("data", data);
-      console.log("data.message", data.message);
 
       const markdownContent = data.message;
       let htmlContent;
@@ -511,6 +563,7 @@ const MenuBar = () => {
 
   return (
     <div className=" sticky top-0 py-2 z-50 bg-background">
+      {/* Menu Bar */}
       <div className="flex flex-row w-full justify-between">
         <div className="flex flex-row gap-2 flex-wrap">
           {/* AI Context Menu */}
@@ -658,6 +711,82 @@ const MenuBar = () => {
               </Dialog>
             </Sheet>
 
+            <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Login Required</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You need to be logged in to use Sonnet 3.5. Would you like
+                    to sign in?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    onClick={() => setLLM_Model("llama3.1_70B")}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    onClick={() => {
+                      // Implement your login logic here
+                      // For example, redirect to login page
+                      window.location.href = "/signin";
+                    }}
+                  >
+                    Sign In
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Select LLM Model */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                  {LLM_Model === "llama3.1_70B"
+                    ? "Llama 3.1 70B"
+                    : "Sonnet 3.5"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-fit" sideOffset={10}>
+                <DropdownMenuLabel>LLM Model</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup
+                  value={LLM_Model}
+                  defaultValue="llama3.1_70B"
+                  onValueChange={(value) => {
+                    if (value === "sonnet_3.5" && !user) {
+                      setShowLoginAlert(true);
+                    } else {
+                      setLLM_Model(value);
+                    }
+                  }}
+                >
+                  <DropdownMenuRadioItem value="llama3.1_70B">
+                    <div className="flex flex-row w-full justify-between gap-2">
+                      <span className="flex flex-row ">Llama 3.1 70B</span>
+                      {/* <Badge variant="outline" className="border-white/20">
+                        Free
+                      </Badge> */}
+                    </div>
+                  </DropdownMenuRadioItem>
+                  {user &&
+                    new Date(user.created_at) <
+                      new Date("2024-08-11T16:52:56.956888Z") && (
+                      <DropdownMenuRadioItem value="sonnet_3.5">
+                        <div className="flex flex-row w-full justify-between gap-2">
+                          <span className="flex flex-row ">Sonnet 3.5</span>
+                          <Badge variant="outline" className="border-white/20">
+                            Pro
+                          </Badge>
+                        </div>
+                      </DropdownMenuRadioItem>
+                    )}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Display total token cost from AskAI */}
             {tokensAskAI.length > 0 && (
               <div className="text-xs text-muted-foreground">
@@ -667,7 +796,9 @@ const MenuBar = () => {
                       variant="ghost"
                       className="p-[.35rem] m-0 h-fit w-fit"
                     >
-                      ${totalCost.toFixed(4)}
+                      {LLM_Model === "llama3.1_70B"
+                        ? "Free"
+                        : `$${totalCost.toFixed(4)}`}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-fit">
@@ -959,7 +1090,9 @@ const MenuBar = () => {
                     <Heading1 className="w-5 h-5 flex-none" />
                   ) : editor.isActive("paragraph") ? (
                     <Type className="w-5 h-5 flex-none" />
-                  ) : null}
+                  ) : (
+                    <Type className="w-5 h-5 flex-none" />
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -1088,7 +1221,7 @@ const MenuBar = () => {
                   </div>
                   <Separator className="flex w-full my-2" />
                   <div className="flex flex-col gap-1 justify-start items-start">
-                    <div className="text-sm text-muted-foreground">Special</div>
+                    <div className="text-sm text-muted-foreground">Blocks</div>
                     <div className="flex flex-row gap-1 justify-start items-start">
                       <ToggleGroupItem
                         value="code"
@@ -1346,7 +1479,7 @@ const MenuBar = () => {
         {/* Floating Menu */}
         {editor && (
           <FloatingMenu
-            className="floating-menu ml-[0rem] mt-[9rem] justify-start items-start w-fit"
+            className="floating-menu ml-[1rem] mt-[10rem] justify-start items-start w-fit"
             tippyOptions={{ duration: 100 }}
             editor={editor}
           >
@@ -1434,11 +1567,11 @@ const MenuBar = () => {
 const extensions = [
   Placeholder.configure({
     // Use a placeholder:
-    placeholder: "Write something or ask the AI to create something …",
+    placeholder: "Write something or ask the AI to create something...",
     // Use different placeholders depending on the node type:
     // placeholder: ({ node }) => {
     //   if (node.type.name === "heading") {
-    //     return "What’s the title?";
+    //     return "What's the title?";
     //   }
 
     //   return "Can you add some further context?";
@@ -1484,6 +1617,7 @@ const extensions = [
   Highlight.configure({ multicolor: true }),
   Link,
   CharacterCount,
+  SlashCommand,
 ];
 
 interface TipTapEditorProps {

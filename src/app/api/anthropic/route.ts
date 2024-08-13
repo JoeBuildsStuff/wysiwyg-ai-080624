@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from "@/utils/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const runtime = 'edge';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-    console.log('POST request received');
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   try {
     const body = await req.json();
 
