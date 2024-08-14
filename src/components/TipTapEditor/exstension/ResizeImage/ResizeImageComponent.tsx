@@ -97,7 +97,7 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
 
   if (isNewImage) {
     return (
-      <NodeViewWrapper className="relative group items-center justify-center w-full flex ">
+      <NodeViewWrapper className="tiptap-resizable-image-component relative group items-center justify-center w-full flex ">
         <div className="w-[20rem] flex flex-col gap-2 bg-background p-2 rounded-lg border border-border">
           <Label className="text-lg">Image Details</Label>
           <Label className="text-xs">Source</Label>
@@ -152,8 +152,10 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
         <div className="relative">
           <img
             src={props.node.attrs.src}
-            alt={props.node.attrs.alt || ""}
+            alt={props.node.attrs.alt}
             title={props.node.attrs.title}
+            width={props.node.attrs.width}
+            height={props.node.attrs.height}
             className="w-full h-full object-contain rounded-lg transition-all duration-200 ease-in-out border border-foreground dark:border-2 m-0"
           />
 

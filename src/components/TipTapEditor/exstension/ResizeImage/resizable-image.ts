@@ -5,7 +5,7 @@ import { ResizableImageComponent } from './ResizeImageComponent'
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setResizableImage: (options: { src: string, alt?: string, title?: string, width?: number, height?: number }) => ReturnType,
+      setResizableImage: (options: { src: string, alt?: string, title?: string, url_link?: string, width?: number, height?: number }) => ReturnType,
     }
   }
 }
@@ -42,6 +42,9 @@ export const ResizableImage = Node.create({
       title: {
         default: null,
       },
+      url_link: {
+        default: null,
+      },
       width: {
         default: null,
       },
@@ -54,13 +57,13 @@ export const ResizableImage = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'img[src]',
+        tag: "tiptap-resizable-image-component",
       },
     ]
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
+    return ["tiptap-resizable-image-component", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
   },
 
   addCommands() {

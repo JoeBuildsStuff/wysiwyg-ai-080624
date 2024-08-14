@@ -20,6 +20,15 @@ export default function SiteHeader() {
             {title}
           </span>
         </Link>
+        <Button asChild variant="ghost" className="h-8">
+          <Link
+            href="/how-to-use-ai-in-wysiwyg-ai"
+            prefetch={false}
+            className="text-center"
+          >
+            Guide
+          </Link>
+        </Button>
         <div className="flex flex-1 items-center space-x-2 justify-end">
           <nav className="flex items-center gap-2 ">
             <div className="hidden sm:block space-x-2 md:space-x-2">

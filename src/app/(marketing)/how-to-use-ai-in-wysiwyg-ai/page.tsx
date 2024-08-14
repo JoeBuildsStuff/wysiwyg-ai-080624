@@ -19,6 +19,16 @@ const content = `
   revolutionize your writing experience.
 </p>
 <p>
+  I know, you came for the minimal WYSIWYG Editor and we just kept going and
+  added AI?
+</p>
+<tiptap-resizable-image-component
+  src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZTF3aTdsYmZrNXE3Y2xjYnF6d3k5d3hqazA4YWkyZml5dWJrZXViaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NiIP482MJQMmY/giphy.webp"
+  title="You had me at WYSIWYG!"
+  width="612"
+  height="325"
+></tiptap-resizable-image-component>
+<p>
   Our latest update harnesses the power of Meta's Llama 3.1 70B model, accessed
   through Groq's lightning-fast APIs. Why this particular combination? It's
   simple: we wanted to provide you with the most intelligent, responsive AI
@@ -57,8 +67,15 @@ const content = `
   polished, professional writing. Read on to discover how we've integrated these
   game-changing features and how you can leverage them in your writing process.
 </p>
+<p>Enough talking... show us the AI!</p>
+<tiptap-resizable-image-component
+  src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHh1ZjVkOHZkejJqeTg3OGw5aHA2MnhpOWNka3NjaHdpM20wbXh2bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7B71Ci4KE3m0/giphy.webp"
+  title=""
+  width="713"
+  height="344"
+></tiptap-resizable-image-component>
 <hr />
-<h1>TLDR: Executive Summary</h1>
+<h1>TLDR</h1>
 <p>
   Our latest update introduces powerful AI-driven features to transform your
   writing experience:
@@ -119,6 +136,12 @@ const content = `
   the tools you need to bring your ideas to life more efficiently than ever
   before.
 </p>
+<tiptap-resizable-image-component
+  src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWVidjJzcHNkNWNxcDc4c3ZqYTBwMXB5cDV3Y3dua250c3Z4Y2UyZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uRb2p09vY8lEs/giphy.webp"
+  title=""
+  width="590"
+  height="339"
+></tiptap-resizable-image-component>
 <hr />
 <h1>AskAI Feature</h1>
 <p>
@@ -128,6 +151,12 @@ const content = `
   Groq's lightning-fast APIs, AskAI provides intelligent, context-aware
   assistance to enhance your writing experience.
 </p>
+<tiptap-resizable-image-component
+  src="https://i.postimg.cc/T3fF1W5b/wysiwyg-ai-askai.gif"
+  title="How AskAI Works!"
+  width="620"
+  height="346"
+></tiptap-resizable-image-component>
 <h3>How It Works</h3>
 <p>Using AskAI is simple and intuitive:</p>
 <ol>
@@ -137,7 +166,7 @@ const content = `
       Llama 3.1 70B
     </p>
   </li>
-  <li><p>Type your request or question in natural language</p></li>
+  <li><p>Type your request or question</p></li>
   <li>
     <p>
       Once you click create your message is sent, and after a brief delay, the
@@ -239,8 +268,20 @@ const content = `
   reference material used to write the content. Whatever you have floating in
   the back of your head is great context for the AI too. This context can be
   other files, or even content on the web. And this is how we can share it with
-  the AI to improve the AI's ability to assist:
+  the AI to improve the AI's ability to assist.
 </p>
+<p>
+  For instance, lets say we want to re-write our Resume for a Job Posting? Welp,
+  lets share our current Resume and Job Posting with the AI before requesting a
+  new draft of our resume...
+</p>
+<tiptap-resizable-image-component
+  src="https://i.postimg.cc/zXhCHtYb/2024-08-13-23-11-58.gif"
+  title="Additional reference context helps!"
+  width="776"
+  height="432"
+></tiptap-resizable-image-component>
+<p></p>
 <h3>How It Works</h3>
 <ol>
   <li>
@@ -360,6 +401,12 @@ const content = `
   guidance and context it needs to deliver accurate, relevant, and high-quality
   responses.
 </p>
+<tiptap-resizable-image-component
+  src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGhodzF4ODdkb2F3NGExOGIwczl6Z255bG54cGMyYXMwbDNzMHlvdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/cR364IczWXiq4/giphy.webp"
+  title="What the WYSIWYG Editor Said to AI?"
+  width="581"
+  height="365"
+></tiptap-resizable-image-component>
 <h1>Conclusion</h1>
 <p>
   As we wrap up our exploration of the latest AI-powered features in our writing
@@ -528,6 +575,7 @@ const content = `
   powerful tool to our users (which as of this writing is an impressive ONE! -
   including the creator).
 </p>
+
 `;
 
 export default async function Home() {
