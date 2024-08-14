@@ -2,12 +2,21 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { ArrowDownRight, ExternalLink, Settings } from "lucide-react";
+import {
+  AlignEndVertical,
+  AlignStartVertical,
+  AlignCenterVertical,
+  ArrowDownRight,
+  ExternalLink,
+  Settings,
+} from "lucide-react";
 import { ResizeCallbackData } from "react-resizable";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Slider } from "@/components/ui/slider";
 
 export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
   const MAX_INITIAL_WIDTH = 600;
@@ -17,6 +26,15 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
     width: props.node.attrs.width || 200,
     height: props.node.attrs.height || 200,
   });
+  const [alignment, setAlignment] = useState(
+    props.node.attrs.alignment || "center"
+  );
+
+  const handleAlignmentChange = useCallback((value: string) => {
+    setAlignment(value);
+    updateAttributesRef.current({ alignment: value });
+  }, []);
+
   const [aspect, setAspect] = useState(1);
   const updateAttributesRef = useRef(props.updateAttributes);
 
@@ -27,6 +45,29 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
 
   const [isNewImage, setIsNewImage] = useState(!props.node.attrs.src);
 
+  const [scale, setScale] = useState(100); // 100 represents 1x scale
+  const originalSize = useRef({ width: 0, height: 0 });
+
+  const [responsiveSize, setResponsiveSize] = useState({
+    width: size.width,
+    height: size.height,
+  });
+
+  useEffect(() => {
+    const updateResponsiveSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 40, size.width);
+      const scaleFactor = maxWidth / size.width;
+      setResponsiveSize({
+        width: maxWidth,
+        height: Math.round(size.height * scaleFactor),
+      });
+    };
+
+    updateResponsiveSize();
+    window.addEventListener("resize", updateResponsiveSize);
+    return () => window.removeEventListener("resize", updateResponsiveSize);
+  }, [size]);
+
   useEffect(() => {
     updateAttributesRef.current = props.updateAttributes;
   }, [props.updateAttributes]);
@@ -36,6 +77,8 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
     img.onload = () => {
       const aspect = img.width / img.height;
       setAspect(aspect);
+      originalSize.current = { width: img.width, height: img.height };
+
       if (!props.node.attrs.width && !props.node.attrs.height) {
         let newWidth = img.width;
         let newHeight = img.height;
@@ -53,18 +96,33 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
         const newSize = { width: newWidth, height: newHeight };
 
         setSize(newSize);
+        setResponsiveSize(newSize);
         queueMicrotask(() => {
           updateAttributesRef.current(newSize);
         });
       } else {
-        setSize({
+        const newSize = {
           width: props.node.attrs.width,
           height: props.node.attrs.height,
-        });
+        };
+        setSize(newSize);
+        setResponsiveSize(newSize);
       }
     };
     img.src = props.node.attrs.src;
   }, [props.node.attrs.src, props.node.attrs.width, props.node.attrs.height]);
+
+  const handleScaleChange = useCallback((newScale: number[]) => {
+    const scaleValue = newScale[0];
+    setScale(scaleValue);
+    const scaleFactor = 0.5 + scaleValue / 100;
+    const newSize = {
+      width: Math.round(originalSize.current.width * scaleFactor),
+      height: Math.round(originalSize.current.height * scaleFactor),
+    };
+    setSize(newSize);
+    updateAttributesRef.current(newSize);
+  }, []);
 
   const toggleEditMode = useCallback(() => {
     setIsEditing((prev) => !prev);
@@ -130,23 +188,18 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
   }
 
   return (
-    <NodeViewWrapper className="relative group items-center justify-center w-full flex pt-5 pb-10 ">
+    <NodeViewWrapper
+      className={`relative group w-full flex pt-5 pb-10 justify-${alignment}`}
+    >
       <ResizableBox
-        width={size.width}
-        height={size.height}
+        width={responsiveSize.width}
+        height={responsiveSize.height}
         onResize={onResize}
         onResizeStop={onResize}
         lockAspectRatio={true}
         resizeHandles={["se"]}
         minConstraints={[100, 100]}
         maxConstraints={[1000, 1000]}
-        handle={
-          <div className="hidden group-hover:flex absolute bottom-0 right-0 w-8 h-8 bg-black/50 items-center justify-center cursor-se-resize rounded-br-lg rounded-tl-md">
-            <span className="text-white text-xs">
-              <ArrowDownRight className="w-6 h-6 flex-none" />
-            </span>
-          </div>
-        }
         className="transition-all duration-200 ease-in-out group-hover:shadow-lg"
       >
         <div className="relative">
@@ -154,14 +207,14 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
             src={props.node.attrs.src}
             alt={props.node.attrs.alt}
             title={props.node.attrs.title}
-            width={props.node.attrs.width}
-            height={props.node.attrs.height}
+            width={responsiveSize.width}
+            height={responsiveSize.height}
             className="w-full h-full object-contain rounded-lg transition-all duration-200 ease-in-out border border-foreground dark:border-2 m-0"
           />
 
           {/* Edit button */}
           <button
-            className="hidden group-hover:flex absolute top-0 right-0 w-8 h-8 bg-black/50 items-center justify-center cursor-pointer rounded-tr-lg rounded-bl-md"
+            className="hidden group-hover:flex absolute top-0 right-0 w-8 h-8 bg-black/50 cursor-pointer rounded-tr-lg rounded-bl-md items-center justify-center"
             onClick={toggleEditMode}
           >
             <span className="text-white text-xs">
@@ -181,7 +234,14 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
             </div>
           )}
           {isEditing && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[300px] bg-background p-2 border border-border rounded-lg shadow-lg">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[300px] bg-background p-2 border border-border rounded-lg shadow-lg items-start">
+              <Label className="text-xs">Title</Label>
+              <Input
+                className="mb-2"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                placeholder="Image title"
+              />
               <Label className="text-xs">Image source</Label>
               <Input
                 className="mb-2"
@@ -196,13 +256,35 @@ export const ResizableImageComponent: React.FC<NodeViewProps> = (props) => {
                 onChange={(e) => setEditedUrl(e.target.value)}
                 placeholder="Link URL (optional)"
               />
-              <Label className="text-xs">Title</Label>
-              <Input
-                className="mb-2"
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                placeholder="Image title"
+
+              <Label className="text-xs">Alignment</Label>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                value={alignment}
+                onValueChange={(value) => value && handleAlignmentChange(value)}
+                className="mb-2 items-start justify-start"
+              >
+                <ToggleGroupItem value="start" size="sm">
+                  <AlignStartVertical className="w-4 h-4 flex-none" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="center" size="sm">
+                  <AlignCenterVertical className="w-4 h-4 flex-none" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="end" size="sm">
+                  <AlignEndVertical className="w-4 h-4 flex-none" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Label className="text-xs">Size</Label>
+              <Slider
+                className="mt-4 mb-6"
+                min={0}
+                max={200}
+                step={1}
+                value={[scale]}
+                onValueChange={handleScaleChange}
               />
+              {props.node.attrs.width}
               <Button
                 variant="secondary"
                 onClick={handleSave}

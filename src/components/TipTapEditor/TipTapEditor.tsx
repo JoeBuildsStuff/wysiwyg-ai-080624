@@ -1218,7 +1218,7 @@ const MenuBar = () => {
                   </div>
                   <Separator className="flex w-full my-2" />
                   <div className="flex flex-col gap-1 justify-start items-start">
-                    <div className="text-sm text-muted-foreground">Lists</div>
+                    <div className="text-sm text-muted-foreground">List</div>
                     <div className="flex flex-row gap-1 justify-start items-start">
                       <ToggleGroupItem
                         value="bulletList"
@@ -1254,7 +1254,7 @@ const MenuBar = () => {
                   </div>
                   <Separator className="flex w-full my-2" />
                   <div className="flex flex-col gap-1 justify-start items-start">
-                    <div className="text-sm text-muted-foreground">Blocks</div>
+                    <div className="text-sm text-muted-foreground"></div>
                     <div className="flex flex-row gap-1 justify-start items-start">
                       <ToggleGroupItem
                         value="code"
@@ -1300,6 +1300,32 @@ const MenuBar = () => {
                       >
                         <FileImage className="w-5 h-5 flex-none" />
                       </ToggleGroupItem>
+                    </div>
+                  </div>
+                  <Separator className="flex w-full my-2" />
+                  <div className="flex flex-col gap-1 justify-start items-start">
+                    <div className="text-sm text-muted-foreground">
+                      Seperator
+                    </div>
+                    <div className="flex flex-row gap-1 justify-start items-start">
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          editor.chain().focus().setHorizontalRule().run()
+                        }
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                      >
+                        <Minus className="w-5 h-5 flex-none" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          editor.chain().focus().setHardBreak().run()
+                        }
+                        className="p-[.35rem] m-0 h-fit w-fit"
+                      >
+                        <SeparatorHorizontal className="w-5 h-5 flex-none" />
+                      </Button>
                     </div>
                   </div>
                 </ToggleGroup>
@@ -1415,7 +1441,7 @@ const MenuBar = () => {
           </Alert>
 
           {/* horizontal rule */}
-          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+          {/* <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
             <Button
               variant="ghost"
               onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -1430,7 +1456,7 @@ const MenuBar = () => {
             >
               <SeparatorHorizontal className="w-5 h-5 flex-none" />
             </Button>
-          </Alert>
+          </Alert> */}
 
           {/* other like unset all marks, clear nodes, etc. */}
           <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
