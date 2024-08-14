@@ -1673,16 +1673,28 @@ interface TipTapEditorProps {
   initialContent?: string;
 }
 
-// Update the TipTapEditor component to accept props
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   initialContent,
 }) => {
+  const [editorContent, setEditorContent] = useState(initialContent);
+
+  const sanitizeContent = (content: string): string => {
+    return content
+      .replace(/\0/g, "")
+      .replace(/\\0/g, "\\\\0")
+      .replace(/\\/g, "\\\\");
+  };
+
+  useEffect(() => {
+    setEditorContent(sanitizeContent(initialContent || ""));
+  }, [initialContent]);
+
   return (
     <div className="prose max-w-none prose-headings:mt-0">
       <EditorProvider
         slotBefore={<MenuBar />}
         extensions={extensions}
-        content={initialContent}
+        content={editorContent}
       ></EditorProvider>
     </div>
   );

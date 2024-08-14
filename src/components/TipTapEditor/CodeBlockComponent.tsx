@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "../ui/button";
@@ -13,9 +13,18 @@ import {
 const CodeBlockComponent = ({ node, updateAttributes, extension }: any) => {
   const [copied, setCopied] = useState(false);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [language, setLanguage] = useState(node.attrs.language || "auto");
 
-  const selectLanguage = (language: string) => {
-    updateAttributes({ language });
+  useEffect(() => {
+    try {
+      updateAttributes({ language });
+    } catch (error) {
+      console.error("Error updating code block language:", error);
+    }
+  }, [language, updateAttributes]);
+
+  const selectLanguage = (newLanguage: string) => {
+    setLanguage(newLanguage);
   };
 
   const copyCode = () => {
@@ -37,7 +46,7 @@ const CodeBlockComponent = ({ node, updateAttributes, extension }: any) => {
       >
         {" "}
         <Select
-          value={node.attrs.language || "auto"}
+          value={language}
           onValueChange={selectLanguage}
           onOpenChange={setIsSelectOpen}
         >
