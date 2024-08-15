@@ -18,7 +18,7 @@ const content = `
   another step forward by integrating cutting-edge AI technology to
   revolutionize your writing experience.
 </p>
-<p>I know, you came for the minimal WYSIWYG Editor and added AI?!</p>
+<p>I know, you came for the minimal WYSIWYG Editor and we added AI?!</p>
 <tiptap-resizable-image-component
   src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOW8xbHI2YW11MjYydHQ4Nm04c24yN2UwdHJrYnRzcnAyY2YwbXZyZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8YPPmTLsPnjJsDCwl8/giphy.gif"
   title=""
