@@ -18,15 +18,13 @@ const content = `
   another step forward by integrating cutting-edge AI technology to
   revolutionize your writing experience.
 </p>
-<p>
-  I know, you came for the minimal WYSIWYG Editor and we just kept going and
-  added AI?
-</p>
+<p>I know, you came for the minimal WYSIWYG Editor and added AI?!</p>
 <tiptap-resizable-image-component
-  src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZTF3aTdsYmZrNXE3Y2xjYnF6d3k5d3hqazA4YWkyZml5dWJrZXViaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NiIP482MJQMmY/giphy.webp"
-  title="You had me at WYSIWYG!"
-  width="612"
-  height="325"
+  src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOW8xbHI2YW11MjYydHQ4Nm04c24yN2UwdHJrYnRzcnAyY2YwbXZyZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8YPPmTLsPnjJsDCwl8/giphy.gif"
+  title=""
+  width="758"
+  height="427"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <p>
   Our latest update harnesses the power of Meta's Llama 3.1 70B model, accessed
@@ -69,10 +67,11 @@ const content = `
 </p>
 <p>Enough talking... show us the AI!</p>
 <tiptap-resizable-image-component
-  src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHh1ZjVkOHZkejJqeTg3OGw5aHA2MnhpOWNka3NjaHdpM20wbXh2bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7B71Ci4KE3m0/giphy.webp"
+  src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTRlMGVna296MGtmOXdmcjlyb3V6eWhtaWx6dTd0ODRyb2RtZWk4YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/aFfK0CJ6OQg5fP84zL/giphy.gif"
   title=""
-  width="713"
-  height="344"
+  width="758"
+  height="411"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <hr />
 <h1>TLDR</h1>
@@ -139,8 +138,9 @@ const content = `
 <tiptap-resizable-image-component
   src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWVidjJzcHNkNWNxcDc4c3ZqYTBwMXB5cDV3Y3dua250c3Z4Y2UyZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uRb2p09vY8lEs/giphy.webp"
   title=""
-  width="590"
-  height="339"
+  width="761"
+  height="437"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <hr />
 <h1>AskAI Feature</h1>
@@ -154,8 +154,9 @@ const content = `
 <tiptap-resizable-image-component
   src="https://i.postimg.cc/T3fF1W5b/wysiwyg-ai-askai.gif"
   title="How AskAI Works!"
-  width="620"
-  height="346"
+  width="768"
+  height="429"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <h3>How It Works</h3>
 <p>Using AskAI is simple and intuitive:</p>
@@ -278,8 +279,9 @@ const content = `
 <tiptap-resizable-image-component
   src="https://i.postimg.cc/zXhCHtYb/2024-08-13-23-11-58.gif"
   title="Additional reference context helps!"
-  width="776"
-  height="432"
+  width="768"
+  height="428"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <p></p>
 <h3>How It Works</h3>
@@ -404,8 +406,9 @@ const content = `
 <tiptap-resizable-image-component
   src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGhodzF4ODdkb2F3NGExOGIwczl6Z255bG54cGMyYXMwbDNzMHlvdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/cR364IczWXiq4/giphy.webp"
   title="What the WYSIWYG Editor Said to AI?"
-  width="581"
-  height="365"
+  width="760"
+  height="413"
+  alignment="center"
 ></tiptap-resizable-image-component>
 <h1>Conclusion</h1>
 <p>
@@ -575,6 +578,7 @@ const content = `
   powerful tool to our users (which as of this writing is an impressive ONE! -
   including the creator).
 </p>
+
 
 `;
 
