@@ -20,10 +20,14 @@ import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import { ResizableImage } from "./exstension/ResizeImage/resizable-image";
 import React, { useCallback, useState, useEffect } from "react";
-import { Button } from "../ui/button";
-import { Toggle } from "../ui/toggle";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import "./TipTapEditor.css";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -44,6 +48,7 @@ import {
   FileDigit,
   Type,
   FileImage,
+  Save,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -58,7 +63,7 @@ import Heading from "@tiptap/extension-heading";
 import CharacterCount from "@tiptap/extension-character-count";
 
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import CodeBlockComponent from "./CodeBlockComponent";
+import CodeBlockComponent from "./exstension/CodeBlockComponent";
 
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { createLowlight, all } from "lowlight";
@@ -77,7 +82,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { SlashCommand } from "./SlashCommandList";
+import { SlashCommand } from "./exstension/SlashCommandList";
 import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -164,6 +169,15 @@ interface FileWithContent {
   url?: string;
 }
 
+// Define the Document type
+interface Document {
+  id: string | null;
+  title: string;
+  content: string;
+  version: number;
+  updatedAt: string;
+}
+
 const MenuBar = () => {
   const supabase = createClient();
   const { toast } = useToast();
@@ -202,6 +216,115 @@ const MenuBar = () => {
   const [user, setUser] = useState<User | null>(null);
 
   const [showLoginAlert, setShowLoginAlert] = useState(false);
+
+  //set up saving in supabase
+  const [isSaving, setIsSaving] = useState(false);
+  const [document, setDocument] = useState<Document>({
+    id: null,
+    title: "Untitled Document",
+    content: editor?.getHTML() || "",
+    version: 1,
+    updatedAt: new Date().toISOString(),
+  });
+
+  // handle the save button click
+  const handleSave = useCallback(async () => {
+    if (!editor || !user) return;
+
+    setIsSaving(true);
+    try {
+      const content = editor.getHTML();
+      let documentId = document.id;
+      let filePath: string;
+
+      if (documentId) {
+        // Existing document
+        filePath = `${user.id}/${documentId}.html`;
+      } else {
+        // New document: generate a UUID client-side
+        documentId = crypto.randomUUID();
+        filePath = `${user.id}/${documentId}.html`;
+      }
+
+      // Upload content to Supabase Storage
+      const { error: storageError } = await supabase.storage
+        .from("wysiwyg-documents")
+        .upload(filePath, content, {
+          contentType: "text/html",
+          upsert: true,
+        });
+
+      if (storageError) throw storageError;
+
+      if (document.id) {
+        // Update existing document
+        const { data: documentData, error: documentError } = await supabase
+          .from("wysiwyg_documents")
+          .update({
+            title: document.title,
+            storage_path: filePath,
+            version: document.version + 1,
+            mime_type: "text/html",
+            file_size: new Blob([content]).size,
+          })
+          .eq("id", documentId)
+          .select()
+          .single();
+
+        if (documentError) throw documentError;
+
+        setDocument({
+          ...document,
+          content,
+          version: documentData.version,
+          updatedAt: documentData.updated_at,
+        });
+      } else {
+        // Insert new document
+        const { data: documentData, error: documentError } = await supabase
+          .from("wysiwyg_documents")
+          .insert({
+            id: documentId, // Use the generated UUID
+            title: document.title,
+            user_id: user.id,
+            storage_path: filePath,
+            is_public: false,
+            mime_type: "text/html",
+            file_size: new Blob([content]).size,
+          })
+          .select()
+          .single();
+
+        if (documentError) throw documentError;
+
+        setDocument({
+          id: documentData.id,
+          title: documentData.title,
+          content,
+          version: documentData.version,
+          updatedAt: documentData.updated_at,
+        });
+      }
+
+      toast({
+        title: "Document saved",
+        description: `The document has been ${
+          document.id ? "updated" : "saved"
+        }.`,
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save document. Please try again.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editor, user, document]);
 
   const addImage = useCallback(() => {
     if (editor) {
@@ -1546,6 +1669,17 @@ const MenuBar = () => {
                 </Button>
               </PopoverContent>
             </Popover>
+          </Alert>
+
+          {/* save button */}
+          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            <Button
+              variant="ghost"
+              className="p-[.35rem] m-0 h-fit w-fit"
+              onClick={handleSave}
+            >
+              <Save className="w-5 h-5 flex-none" />
+            </Button>
           </Alert>
         </div>
 
