@@ -25,7 +25,7 @@ export default async function DocList() {
   const { data: documents, error: documentsError } = await supabase
     .from("wysiwyg_documents")
     .select("*")
-    .eq("user_id", data?.user?.id);
+    .eq("user_id", data?.user?.id ?? "");
 
   return (
     <Sheet>
@@ -55,7 +55,7 @@ export default async function DocList() {
                     <div>
                       <h3 className="font-semibold text-lg">{doc.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {doc.file_size} KB • {doc.file_type}
+                        {doc.file_size} KB • {doc.mime_type}
                       </p>
                     </div>
                   </div>
@@ -73,7 +73,7 @@ export default async function DocList() {
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Updated: {new Date(doc.updated_at).toLocaleString()}
+                  Updated: {new Date(doc.updated_at ?? "").toLocaleString()}
                 </p>
               </Alert>
             </Link>
