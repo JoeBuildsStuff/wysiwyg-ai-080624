@@ -45,5 +45,5 @@ const content = `<h1 id="privacy-policy-for-wysiwyg-ai">Privacy Policy for WYSIW
 `;
 
 export default function PrivacyPolicy() {
-  return <TipTapEditor initialContent={content} />;
+  return <TipTapEditor initialDocumentContent={content} />;
 }

@@ -63,7 +63,7 @@ export default async function Home() {
       </section>
       <div className="px-4 pb-10">
         <div className="max-w-4xl mx-auto ">
-          <TipTapEditor initialContent={content} />
+          <TipTapEditor initialDocumentContent={content} />
         </div>
       </div>
     </div>
