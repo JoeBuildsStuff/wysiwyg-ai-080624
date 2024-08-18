@@ -39,5 +39,5 @@ const content = `
 `;
 
 export default function TermsOfService() {
-  return <TipTapEditor initialContent={content} />;
+  return <TipTapEditor initialDocumentContent={content} />;
 }
