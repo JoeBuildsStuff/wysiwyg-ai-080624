@@ -19,7 +19,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import { ResizableImage } from "./exstension/ResizeImage/resizable-image";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import "./TipTapEditor.css";
@@ -158,32 +158,40 @@ import {
 
 const enc = getEncoding("cl100k_base");
 
-interface FileWithContent {
-  name: string;
-  title: string;
-  size: number;
-  type: string;
-  lastModified: number;
-  text: string | null;
-  tokens: number;
-  url?: string;
+import { Tables } from "../../../database.types";
+
+type WysiwygDocument = Tables<"wysiwyg_documents">;
+type WysiwygReference = Tables<"wysiwyg_references">;
+
+// Replace the existing Document interface with this:
+export interface Document extends WysiwygDocument {
+  content: string; // Add this field as it's not in the database schema
 }
 
-// Define the Document type
-interface Document {
-  id: string | null;
-  title: string;
-  content: string;
-  version: number;
-  updatedAt: string;
+// Update the FileWithContent interface
+export interface FileWithContent extends WysiwygReference {
+  name: string; // Derived from storage_path
+  text: string | null; // Content loaded from storage_path
+  tokens: number; // Computed field
+  lastModified: number; // Computed field
+  url?: string; // Computed field
 }
 
-const MenuBar = () => {
+const MenuBar = ({
+  initialDocument,
+  initialReferences,
+}: {
+  initialDocument: WysiwygDocument;
+  initialReferences: FileWithContent[];
+}) => {
+  const [addRefContext, setAddRefContext] =
+    useState<FileWithContent[]>(initialReferences);
+
   const supabase = createClient();
   const { toast } = useToast();
   const { editor } = useCurrentEditor();
   const [userPrompt, setUserPrompt] = useState("");
-  const [addRefContext, setAddRefContext] = useState<FileWithContent[]>([]);
+
   const [selectedFile, setSelectedFile] = useState<FileWithContent | null>(
     null
   );
@@ -220,11 +228,19 @@ const MenuBar = () => {
   //set up saving in supabase
   const [isSaving, setIsSaving] = useState(false);
   const [document, setDocument] = useState<Document>({
-    id: null,
-    title: "Untitled Document",
+    id: initialDocument?.id || "",
+    title: initialDocument?.title || "Untitled Document",
     content: editor?.getHTML() || "",
-    version: 1,
-    updatedAt: new Date().toISOString(),
+    version: initialDocument?.version || 1,
+    updated_at: initialDocument?.updated_at || new Date().toISOString(),
+    created_at: initialDocument?.created_at || new Date().toISOString(),
+    description: initialDocument?.description || null,
+    file_size: initialDocument?.file_size || null,
+    is_public: initialDocument?.is_public || false,
+    mime_type: initialDocument?.mime_type || "text/html",
+    storage_path: initialDocument?.storage_path || "",
+    tags: initialDocument?.tags || [],
+    user_id: initialDocument?.user_id || "",
   });
 
   // handle the save button click
@@ -239,7 +255,7 @@ const MenuBar = () => {
 
       if (documentId) {
         // Existing document
-        filePath = `${user.id}/${documentId}.html`;
+        filePath = document.storage_path;
       } else {
         // New document: generate a UUID client-side
         documentId = crypto.randomUUID();
@@ -256,14 +272,16 @@ const MenuBar = () => {
 
       if (storageError) throw storageError;
 
+      let documentData;
+
       if (document.id) {
         // Update existing document
-        const { data: documentData, error: documentError } = await supabase
+        const { data, error: documentError } = await supabase
           .from("wysiwyg_documents")
           .update({
             title: document.title,
             storage_path: filePath,
-            version: document.version + 1,
+            version: (document.version ?? 0) + 1,
             mime_type: "text/html",
             file_size: new Blob([content]).size,
           })
@@ -272,16 +290,10 @@ const MenuBar = () => {
           .single();
 
         if (documentError) throw documentError;
-
-        setDocument({
-          ...document,
-          content,
-          version: documentData.version,
-          updatedAt: documentData.updated_at,
-        });
+        documentData = data;
       } else {
         // Insert new document
-        const { data: documentData, error: documentError } = await supabase
+        const { data, error: documentError } = await supabase
           .from("wysiwyg_documents")
           .insert({
             id: documentId, // Use the generated UUID
@@ -296,21 +308,33 @@ const MenuBar = () => {
           .single();
 
         if (documentError) throw documentError;
-
-        setDocument({
-          id: documentData.id,
-          title: documentData.title,
-          content,
-          version: documentData.version,
-          updatedAt: documentData.updated_at,
-        });
+        documentData = data;
       }
+
+      // Save references
+      const savedReferences = await saveReferences(addRefContext, documentId);
+
+      setDocument({
+        id: documentData.id,
+        title: documentData.title,
+        content,
+        version: documentData.version,
+        updated_at: documentData.updated_at,
+        created_at: documentData.created_at,
+        description: documentData.description,
+        file_size: documentData.file_size,
+        is_public: documentData.is_public,
+        mime_type: documentData.mime_type,
+        storage_path: documentData.storage_path,
+        user_id: documentData.user_id,
+        tags: documentData.tags || [],
+      });
 
       toast({
         title: "Document saved",
         description: `The document has been ${
           document.id ? "updated" : "saved"
-        }.`,
+        } with ${savedReferences.length} references.`,
         position: "bottom-right",
       });
     } catch (error) {
@@ -324,7 +348,104 @@ const MenuBar = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [editor, user, document]);
+  }, [editor, user, document, addRefContext]);
+
+  // Function to save references
+  const saveReferences = async (
+    references: FileWithContent[],
+    documentId: string
+  ) => {
+    const savedRefs: any[] = [];
+
+    for (const ref of references) {
+      try {
+        // Generate the file path
+        const filePath = `${user?.id}/references/${ref.name}`;
+
+        // Upload or update file in Supabase Storage
+        const { error: storageError } = await supabase.storage
+          .from("wysiwyg-documents")
+          .upload(filePath, ref.text!, {
+            contentType: ref.mime_type || undefined,
+            upsert: true, // This will overwrite if the file already exists
+          });
+
+        if (storageError) throw storageError;
+
+        console.log("File uploaded/updated successfully:", filePath);
+
+        // Check if the reference already exists
+        const { data: existingRef, error: existingRefError } = await supabase
+          .from("wysiwyg_references")
+          .select()
+          .eq("user_id", user?.id ?? "")
+          .eq("storage_path", ref.storage_path)
+          .single();
+
+        if (existingRefError && existingRefError.code !== "PGRST116") {
+          // PGRST116 is the error code for "no rows returned"
+          console.error("Error checking existing reference:", existingRefError);
+          continue;
+        }
+
+        let refData;
+
+        if (existingRef) {
+          // Update existing reference
+          const { data, error: updateError } = await supabase
+            .from("wysiwyg_references")
+            .update({
+              title: ref.title,
+              description: ref.description || null,
+              mime_type: ref.mime_type || null,
+              file_size: ref.file_size || null,
+            })
+            .eq("id", existingRef.id)
+            .select();
+
+          if (updateError) throw updateError;
+          refData = data?.[0];
+        } else {
+          // Create new reference
+          const { data, error: insertError } = await supabase
+            .from("wysiwyg_references")
+            .insert({
+              title: ref.title,
+              description: ref.description || null,
+              user_id: user?.id || "",
+              storage_path: ref.storage_path,
+              mime_type: ref.mime_type || null,
+              file_size: ref.file_size || null,
+            })
+            .select();
+
+          if (insertError) throw insertError;
+          refData = data?.[0];
+        }
+
+        // Create or update mapping
+        const { error: mappingError } = await supabase
+          .from("wysiwyg_document_reference_mappings")
+          .upsert(
+            {
+              document_id: documentId,
+              reference_id: refData.id,
+            },
+            {
+              onConflict: "document_id,reference_id",
+            }
+          );
+
+        if (mappingError) throw mappingError;
+
+        savedRefs.push(refData);
+      } catch (error) {
+        console.error("Error saving reference:", error);
+      }
+    }
+
+    return savedRefs;
+  };
 
   const addImage = useCallback(() => {
     if (editor) {
@@ -381,13 +502,19 @@ const MenuBar = () => {
         setAddRefContext((prevFiles) => [
           ...prevFiles,
           {
+            id: crypto.randomUUID(), // Generate a new UUID for the file
             name: file.name,
             title: data.title, // Use the title from the API response
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified,
+            description: null, // You might want to generate a description
+            user_id: user?.id || "", // Make sure to handle the case where user is not defined
+            storage_path: `${user?.id}/references/${file.name}`,
+            mime_type: file.type,
+            file_size: file.size,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             text: fileContent,
             tokens: tokens,
+            lastModified: file.lastModified,
           },
         ]);
       };
@@ -495,11 +622,17 @@ const MenuBar = () => {
 
     // Add a skeleton placeholder
     const skeletonFile: FileWithContent = {
+      id: `loading-${Date.now()}`,
       name: `loading-${Date.now()}.md`,
       title: "Loading...",
-      size: 0,
-      type: "text/markdown",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       lastModified: Date.now(),
+      file_size: 0,
+      mime_type: "text/markdown",
+      user_id: user?.id || "",
+      description: "Loading content...",
+      storage_path: "",
       text: null,
       tokens: 0,
     };
@@ -544,9 +677,7 @@ const MenuBar = () => {
             buffer += data;
 
             try {
-              console.log("Attempting to parse buffer:", buffer);
               const parsedData = JSON.parse(buffer);
-              console.log("Successfully parsed data:", parsedData);
 
               if (parsedData.type === "result") {
                 const markdownContent = parsedData.message;
@@ -582,13 +713,22 @@ const MenuBar = () => {
 
       // Create a new file-like object from the received content
       const newFile: FileWithContent = {
+        id: crypto.randomUUID(), // Generate a new UUID for the file
+        title: titleData.title,
+        description: null, // You might want to generate a description
+        user_id: user?.id || "", // Make sure to handle the case where user is not defined
+        storage_path: `${user?.id}/references/${
+          new URL(url).hostname
+        }-${Date.now()}.md`,
+        mime_type: "text/markdown",
+        file_size: new Blob([finalContent]).size,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        // Additional fields for FileWithContent
         name: `${new URL(url).hostname}-${Date.now()}.md`,
-        title: titleData.title, // Use the title from the API response
-        size: new Blob([finalContent]).size,
-        type: "text/markdown",
-        lastModified: Date.now(),
         text: finalContent,
         tokens: enc.encode(finalContent).length,
+        lastModified: Date.now(),
         url: url,
       };
 
@@ -825,7 +965,8 @@ const MenuBar = () => {
 
                                 <div className="text-sm text-muted-foreground flex flex-row gap-1">
                                   <span>
-                                    {(file.size / 1024).toFixed(2)} KB •
+                                    {(file.file_size ?? 0 / 1024).toFixed(2)} KB
+                                    •
                                   </span>
                                   <span> {file.tokens} tokens</span>
                                 </div>
@@ -858,10 +999,12 @@ const MenuBar = () => {
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">{selectedFile?.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Size: {(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB •
-                      Tokens: {selectedFile?.tokens}
+                      Size: {(selectedFile?.file_size ?? 0 / 1024).toFixed(2)}{" "}
+                      KB • Tokens: {selectedFile?.tokens}
                     </p>
-                    <TipTapEditor initialContent={selectedFile?.text ?? ""} />
+                    <TipTapEditor
+                      initialDocumentContent={selectedFile?.text ?? ""}
+                    />
                   </div>
                 </DialogContent>
               </Dialog>
@@ -1830,13 +1973,22 @@ const extensions = [
 ];
 
 interface TipTapEditorProps {
-  initialContent?: string;
+  initialDocument?: Document;
+  initialDocumentContent?: string;
+  initialReferences?: FileWithContent[];
 }
 
 export const TipTapEditor: React.FC<TipTapEditorProps> = ({
-  initialContent,
+  initialDocument,
+  initialDocumentContent,
+  initialReferences = [],
 }) => {
-  const [editorContent, setEditorContent] = useState(initialContent);
+  const [editorContent, setEditorContent] = useState(
+    initialDocument?.content || initialDocumentContent || ""
+  );
+  const [addRefContext, setAddRefContext] =
+    useState<FileWithContent[]>(initialReferences);
+  const isInitialMount = useRef(true);
 
   const sanitizeContent = (content: string): string => {
     return content
@@ -1846,13 +1998,26 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
   };
 
   useEffect(() => {
-    setEditorContent(sanitizeContent(initialContent || ""));
-  }, [initialContent]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      setEditorContent(
+        sanitizeContent(
+          initialDocument?.content || initialDocumentContent || ""
+        )
+      );
+      setAddRefContext(initialReferences);
+    }
+  }, [initialDocument, initialDocumentContent, initialReferences]);
 
   return (
     <div className="prose max-w-none prose-headings:mt-0">
       <EditorProvider
-        slotBefore={<MenuBar />}
+        slotBefore={
+          <MenuBar
+            initialDocument={initialDocument || ({} as WysiwygDocument)}
+            initialReferences={addRefContext}
+          />
+        }
         extensions={extensions}
         content={editorContent}
       ></EditorProvider>
