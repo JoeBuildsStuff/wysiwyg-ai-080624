@@ -64,23 +64,31 @@ export default async function Page({ params }: { params: { id: string } }) {
   // Fetch the content of each reference
   const referencesWithContent = await Promise.all(
     references?.map(async (ref) => {
+      const storagePath = ref.wysiwyg_references?.storage_path || "";
       const { data: refStorage, error: refStorageError } =
-        await supabase.storage
-          .from("wysiwyg-documents")
-          .download(ref.wysiwyg_references?.storage_path || "");
+        await supabase.storage.from("wysiwyg-documents").download(storagePath);
 
       let refContent = "";
       if (refStorage) {
         refContent = await refStorage.text();
+      } else {
+        console.error("Failed to retrieve file content");
       }
 
       if (refStorageError) {
-        console.error("Error fetching reference content:", refStorageError);
+        console.error(
+          "Error fetching reference content:",
+          refStorageError.message
+        );
+        console.error("Error details:", refStorageError);
       }
 
       return {
         ...ref.wysiwyg_references,
         text: refContent,
+        tokens: refContent.length,
+        lastModified: new Date().getTime(),
+        name: storagePath.split("/").pop() || "",
       };
     }) || []
   );

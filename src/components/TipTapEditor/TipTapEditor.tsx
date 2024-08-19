@@ -264,6 +264,37 @@ const MenuBar = ({
         filePath = `${user.id}/${documentId}.html`;
       }
 
+      // Fetch title, description, and tags from Groq API
+      const response = await fetch("/api/groq/filename", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get metadata from Groq API");
+      }
+
+      const {
+        title,
+        description,
+        tags,
+        model,
+        total_time,
+        prompt_tokens,
+        completion_tokens,
+        prompt_time,
+        completion_time,
+      } = await response.json();
+
+      // Calculate tokens per second
+      const inputTokensPerSecond = (prompt_tokens / prompt_time).toFixed(2);
+      const outputTokensPerSecond = (
+        completion_tokens / completion_time
+      ).toFixed(2);
+
       // Upload content to Supabase Storage
       const { error: storageError } = await supabase.storage
         .from("wysiwyg-documents")
@@ -281,7 +312,9 @@ const MenuBar = ({
         const { data, error: documentError } = await supabase
           .from("wysiwyg_documents")
           .update({
-            title: document.title,
+            title: title || document.title,
+            description: description || document.description,
+            tags: tags || document.tags,
             storage_path: filePath,
             version: (document.version ?? 0) + 1,
             mime_type: "text/html",
@@ -299,7 +332,9 @@ const MenuBar = ({
           .from("wysiwyg_documents")
           .insert({
             id: documentId, // Use the generated UUID
-            title: document.title,
+            title: title || document.title,
+            description: description || document.description,
+            tags: tags || document.tags,
             user_id: user.id,
             storage_path: filePath,
             is_public: false,
@@ -336,7 +371,11 @@ const MenuBar = ({
         title: "Document saved",
         description: `The document has been ${
           document.id ? "updated" : "saved"
-        } with ${savedReferences.length} references.`,
+        } with ${
+          savedReferences.length
+        } references. 🚀 Model: ${model}, Response Time: ${total_time.toFixed(
+          2
+        )}s ⚡\nInput Tokens/s: ${inputTokensPerSecond} ⏱️\nOutput Tokens/s: ${outputTokensPerSecond} ⏱️`,
         position: "bottom-right",
       });
     } catch (error) {
@@ -361,31 +400,36 @@ const MenuBar = ({
 
     for (const ref of references) {
       try {
+        // Generate a consistent filename with a timestamp
+        const timestamp = Date.now();
+        const fileName = `${ref.name.split(".")[0]}-${timestamp}.${ref.name
+          .split(".")
+          .pop()}`;
+
         // Generate the file path
-        const filePath = `${user?.id}/references/${ref.name}`;
+        const filePath = `${user?.id}/references/${fileName}`;
 
         // Upload or update file in Supabase Storage
         const { error: storageError } = await supabase.storage
           .from("wysiwyg-documents")
           .upload(filePath, ref.text!, {
             contentType: ref.mime_type || undefined,
-            upsert: true, // This will overwrite if the file already exists
+            upsert: true,
           });
 
         if (storageError) throw storageError;
 
         console.log("File uploaded/updated successfully:", filePath);
 
-        // Check if the reference already exists
+        // Use the same filePath for database operations
         const { data: existingRef, error: existingRefError } = await supabase
           .from("wysiwyg_references")
           .select()
           .eq("user_id", user?.id ?? "")
-          .eq("storage_path", ref.storage_path)
+          .eq("storage_path", filePath) // Use filePath instead of ref.storage_path
           .single();
 
         if (existingRefError && existingRefError.code !== "PGRST116") {
-          // PGRST116 is the error code for "no rows returned"
           console.error("Error checking existing reference:", existingRefError);
           continue;
         }
@@ -401,6 +445,7 @@ const MenuBar = ({
               description: ref.description || null,
               mime_type: ref.mime_type || null,
               file_size: ref.file_size || null,
+              storage_path: filePath, // Update storage_path
             })
             .eq("id", existingRef.id)
             .select();
@@ -415,7 +460,7 @@ const MenuBar = ({
               title: ref.title,
               description: ref.description || null,
               user_id: user?.id || "",
-              storage_path: ref.storage_path,
+              storage_path: filePath, // Use the new filePath
               mime_type: ref.mime_type || null,
               file_size: ref.file_size || null,
             })
@@ -1478,24 +1523,6 @@ const MenuBar = ({
           </Alert>
 
           {/* horizontal rule */}
-          {/* <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
-            <Button
-              variant="ghost"
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              className="p-[.35rem] m-0 h-fit w-fit"
-            >
-              <Minus className="w-5 h-5 flex-none" />
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => editor.chain().focus().setHardBreak().run()}
-              className="p-[.35rem] m-0 h-fit w-fit"
-            >
-              <SeparatorHorizontal className="w-5 h-5 flex-none" />
-            </Button>
-          </Alert> */}
-
-          {/* color and highlight */}
           <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
             <Popover>
               <PopoverTrigger asChild>
