@@ -22,8 +22,6 @@ export default async function Page({ params }: { params: { id: string } }) {
     notFound();
   }
 
-  console.log("document", document);
-
   // Fetch the document content
   const { data: storage, error: storageError } = await supabase.storage
     .from("wysiwyg-documents")

@@ -114,6 +114,26 @@ export default function EditDocDetails({
   async function handleDelete() {
     setIsDeleting(true);
     try {
+      // Fetch related references
+      const { data: references, error: referencesError } = await supabase
+        .from("wysiwyg_document_reference_mappings")
+        .select("reference_id")
+        .eq("document_id", doc.id);
+
+      if (referencesError) throw referencesError;
+
+      // Delete related references
+      if (references) {
+        const referenceIds = references.map((ref) => ref.reference_id);
+        const { error: deleteReferencesError } = await supabase
+          .from("wysiwyg_references")
+          .delete()
+          .in("id", referenceIds);
+
+        if (deleteReferencesError) throw deleteReferencesError;
+      }
+
+      // Delete document
       const { error } = await supabase
         .from("wysiwyg_documents")
         .delete()
@@ -123,15 +143,16 @@ export default function EditDocDetails({
 
       toast({
         title: "Success",
-        description: "Document has been deleted.",
+        description: "Document and related references have been deleted.",
       });
-      // onDelete();  Should consider handling in the parent component and nagivating to another page if we are
+      // onDelete();  Should consider handling in the parent component and navigating to another page if we are
       // currently on the document page we are deleting
     } catch (error) {
-      console.error("Error deleting document:", error);
+      console.error("Error deleting document and references:", error);
       toast({
         title: "Error",
-        description: "There was a problem deleting the document.",
+        description:
+          "There was a problem deleting the document and references.",
         variant: "destructive",
       });
     } finally {

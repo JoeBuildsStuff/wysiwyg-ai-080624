@@ -43,6 +43,8 @@ export default function DocListRealtime({
             setDocuments((prevDocuments) =>
               prevDocuments.filter((doc) => doc.id !== payload.old.id)
             );
+
+            // Optionally, handle the deletion of references in the UI if needed
           }
         }
       )
