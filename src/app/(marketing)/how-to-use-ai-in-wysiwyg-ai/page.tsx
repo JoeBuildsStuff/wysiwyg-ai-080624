@@ -152,7 +152,7 @@ const content = `
   assistance to enhance your writing experience.
 </p>
 <tiptap-resizable-image-component
-  src="https://i.postimg.cc/T3fF1W5b/wysiwyg-ai-askai.gif"
+  src="https://i.postimg.cc/BvSfGpFb/wysiwyg-ai-askai.gif"
   title="How AskAI Works!"
   width="768"
   height="429"
@@ -277,7 +277,7 @@ const content = `
   new draft of our resume...
 </p>
 <tiptap-resizable-image-component
-  src="https://i.postimg.cc/zXhCHtYb/2024-08-13-23-11-58.gif"
+  src="https://i.postimg.cc/13c1T2fb/wysiwyg-ai-context.gif"
   title="Additional reference context helps!"
   width="768"
   height="428"
