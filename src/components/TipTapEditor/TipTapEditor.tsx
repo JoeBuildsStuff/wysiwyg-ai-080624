@@ -6,6 +6,7 @@ import TurndownService from "turndown";
 
 import { EditorProvider, useCurrentEditor, FloatingMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
 import { Color } from "@tiptap/extension-color";
 import ListItem from "@tiptap/extension-list-item";
 import TextStyle from "@tiptap/extension-text-style";
@@ -49,6 +50,7 @@ import {
   Type,
   FileImage,
   Save,
+  Underline as UnderlineIcon,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -1122,245 +1124,6 @@ const MenuBar = ({
             )}
           </Alert>
 
-          {/* color and highlight */}
-          <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
-                  <Baseline
-                    className="w-5 h-5 flex-none"
-                    style={{
-                      color: editor.getAttributes("textStyle").color,
-                    }}
-                  ></Baseline>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
-                <ToggleGroup
-                  type="single"
-                  value={editor.getAttributes("textStyle").color}
-                  className="flex flex-col gap-1"
-                >
-                  <ToggleGroupItem
-                    value="#e11d48"
-                    aria-label="toggle rose"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#e11d48").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#e11d48" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#7c3aed"
-                    aria-label="toggle violet"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#7c3aed").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#7c3aed" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#2563eb"
-                    aria-label="toggle blue"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#2563eb").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#2563eb" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#10b981"
-                    aria-label="toggle emerald"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#10b981").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#10b981" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#f59e0b"
-                    aria-label="toggle amber"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#f59e0b").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#f59e0b" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#737373"
-                    aria-label="toggle neutral"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#737373").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#737373" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#fafafa"
-                    aria-label="toggle white"
-                    onClick={() =>
-                      editor.chain().focus().setColor("#fafafa").run()
-                    }
-                    className="w-full flex items-center"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#fafafa" }}
-                    ></div>
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </PopoverContent>
-            </Popover>
-            {/* highlight */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="p-[.35rem] m-0 h-fit w-fit"
-                  style={{
-                    color: editor.getAttributes("highlight").color,
-                  }}
-                >
-                  <Highlighter className="w-5 h-5 flex-none" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
-                <ToggleGroup
-                  type="single"
-                  value={editor.getAttributes("highlight").color}
-                  className="flex flex-col gap-1"
-                >
-                  <ToggleGroupItem
-                    value="#e11d48"
-                    aria-label="toggle rose highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#e11d48" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#e11d48" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#7c3aed"
-                    aria-label="toggle violet highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#7c3aed" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#7c3aed" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#2563eb"
-                    aria-label="toggle blue highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#2563eb" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#2563eb" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#10b981"
-                    aria-label="toggle emerald highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#10b981" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#10b981" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#f59e0b"
-                    aria-label="toggle amber highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#f59e0b" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#f59e0b" }}
-                    ></div>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="#737373"
-                    aria-label="toggle neutral highlight"
-                    onClick={() =>
-                      editor
-                        .chain()
-                        .focus()
-                        .toggleHighlight({ color: "#737373" })
-                        .run()
-                    }
-                    className="w-full flex justify-start"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: "#737373" }}
-                    ></div>
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </PopoverContent>
-            </Popover>
-          </Alert>
-
           {/* formatting like paragraph, heading, list, etc. */}
           <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
             <Popover>
@@ -1682,6 +1445,14 @@ const MenuBar = ({
               <Italic className="w-5 h-5 flex-none" />
             </Toggle>
             <Toggle
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              disabled={!editor.can().chain().focus().toggleUnderline().run()}
+              pressed={editor.isActive("underline")}
+              className="p-[.35rem] m-0 h-fit w-fit"
+            >
+              <UnderlineIcon className="w-5 h-5 flex-none" />
+            </Toggle>
+            <Toggle
               onClick={() => editor.chain().focus().toggleStrike().run()}
               disabled={!editor.can().chain().focus().toggleStrike().run()}
               pressed={editor.isActive("strike")}
@@ -1723,6 +1494,245 @@ const MenuBar = ({
               <SeparatorHorizontal className="w-5 h-5 flex-none" />
             </Button>
           </Alert> */}
+
+          {/* color and highlight */}
+          <Alert className="flex flex-row p-1 m-0 w-fit gap-1 ">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="p-[.35rem] m-0 h-fit w-fit">
+                  <Baseline
+                    className="w-5 h-5 flex-none"
+                    style={{
+                      color: editor.getAttributes("textStyle").color,
+                    }}
+                  ></Baseline>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
+                <ToggleGroup
+                  type="single"
+                  value={editor.getAttributes("textStyle").color}
+                  className="flex flex-col gap-1"
+                >
+                  <ToggleGroupItem
+                    value="#e11d48"
+                    aria-label="toggle rose"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#e11d48").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#e11d48" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#7c3aed"
+                    aria-label="toggle violet"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#7c3aed").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#7c3aed" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#2563eb"
+                    aria-label="toggle blue"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#2563eb").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#2563eb" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#10b981"
+                    aria-label="toggle emerald"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#10b981").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#10b981" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#f59e0b"
+                    aria-label="toggle amber"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#f59e0b").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#737373"
+                    aria-label="toggle neutral"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#737373").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#737373" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#fafafa"
+                    aria-label="toggle white"
+                    onClick={() =>
+                      editor.chain().focus().setColor("#fafafa").run()
+                    }
+                    className="w-full flex items-center"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#fafafa" }}
+                    ></div>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+            {/* highlight */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="p-[.35rem] m-0 h-fit w-fit"
+                  style={{
+                    color: editor.getAttributes("highlight").color,
+                  }}
+                >
+                  <Highlighter className="w-5 h-5 flex-none" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit h-fit p-1 m-0 mt-2">
+                <ToggleGroup
+                  type="single"
+                  value={editor.getAttributes("highlight").color}
+                  className="flex flex-col gap-1"
+                >
+                  <ToggleGroupItem
+                    value="#e11d48"
+                    aria-label="toggle rose highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#e11d48" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#e11d48" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#7c3aed"
+                    aria-label="toggle violet highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#7c3aed" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#7c3aed" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#2563eb"
+                    aria-label="toggle blue highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#2563eb" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#2563eb" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#10b981"
+                    aria-label="toggle emerald highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#10b981" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#10b981" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#f59e0b"
+                    aria-label="toggle amber highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#f59e0b" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    ></div>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="#737373"
+                    aria-label="toggle neutral highlight"
+                    onClick={() =>
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleHighlight({ color: "#737373" })
+                        .run()
+                    }
+                    className="w-full flex justify-start"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: "#737373" }}
+                    ></div>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </PopoverContent>
+            </Popover>
+          </Alert>
 
           {/* other like unset all marks, clear nodes, etc. */}
           <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
@@ -1939,6 +1949,7 @@ const extensions = [
       keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
     },
   }),
+  Underline,
   Paragraph,
   Text,
   TaskList,

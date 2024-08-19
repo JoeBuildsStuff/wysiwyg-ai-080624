@@ -2,7 +2,7 @@ import SiteHeader from "@/components/site-header";
 
 import SiteFooter from "@/components/site-footer";
 import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
-import DocList from "@/components/DocList";
+import DocList from "@/components/DocList/DocList";
 
 export default async function Home() {
   return (

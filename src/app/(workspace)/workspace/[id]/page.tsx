@@ -1,5 +1,5 @@
 import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
-import DocList from "@/components/DocList";
+import DocList from "@/components/DocList/DocList";
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 
