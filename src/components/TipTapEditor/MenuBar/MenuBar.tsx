@@ -11,7 +11,7 @@ import Document from "@tiptap/extension-document";
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import "./TipTapEditor.css";
+import "../TipTapEditor.css";
 import {
   Popover,
   PopoverContent,
