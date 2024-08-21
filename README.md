@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# WYSIWYG-AI
+
+WYSIWYG-AI is an open-source, AI-powered rich text editor built on top of Tiptap. It combines the power of a modern WYSIWYG editor with cutting-edge AI capabilities to enhance the content creation experience.
+
+## Features
+
+- Rich text editing powered by Tiptap
+- AI-assisted content generation using Llama 3.1 70B (via Groq) and Claude 3.5 Sonnet
+- Image support with resizing capabilities
+- Code block highlighting
+- Task lists
+- Real-time collaboration (TBA)
+- Markdown import/export
+- Customizable UI with Tailwind CSS and shadcn/ui
+
+## Tech Stack
+
+- Next.js with App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+- Tiptap editor
+- Supabase for authentication and database
+- Groq API for Llama 3.1 70B integration
+- Anthropic API for Claude 3.5 Sonnet integration
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Set up environment variables (see `.env.example`)
+4. Run the development server:
+   ```
+   npm run dev
+   ```
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## AI Integration
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+WYSIWYG-AI currently supports two AI models:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Llama 3.1 70B (via Groq): Used to test the speed and performance of Meta's latest open-source model.
+2. Claude 3.5 Sonnet: Implemented for its superior performance and capabilities.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+To use the AI features, refer to the "How to Use AI" section in the application.
 
-## Learn More
+## Contributing
 
-To learn more about Next.js, take a look at the following resources:
+We welcome contributions to WYSIWYG-AI! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Deploy on Vercel
+## Acknowledgments
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Tiptap](https://tiptap.dev/) for the core editor functionality
+- [Groq](https://groq.com/) for providing access to Llama 3.1 70B
+- [Anthropic](https://www.anthropic.com/) for Claude 3.5 Sonnet
+- [Vercel](https://vercel.com/) for hosting and deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Roadmap
+
+For upcoming features and improvements, check out our [Road Map](https://wysiwyg-ai.com/road-map).
+
+## Contact
+
+For questions or feedback, please open an issue on this repository or contact the maintainer at [your-email@example.com].

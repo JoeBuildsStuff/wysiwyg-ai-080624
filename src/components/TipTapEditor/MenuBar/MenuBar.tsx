@@ -6,7 +6,7 @@ import { saveAs } from "file-saver";
 import { marked } from "marked";
 import TurndownService from "turndown";
 
-import { useCurrentEditor, FloatingMenu } from "@tiptap/react";
+import { useCurrentEditor } from "@tiptap/react";
 import Document from "@tiptap/extension-document";
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
+
+import { FloatingMenu } from "./FloatingMenu";
 
 // Create a lowlight instance
 const lowlight = createLowlight(all);
@@ -371,8 +373,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   ) => {
     const savedRefs: any[] = [];
 
-    console.log("Saving references:", references);
-
     for (const ref of references) {
       try {
         // Generate a consistent filename with a timestamp
@@ -391,9 +391,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             contentType: ref.mime_type || undefined,
             upsert: true,
           });
-
-        console.log("File uploaded/updated successfully:", filePath);
-        console.log("storageError:", storageError);
 
         if (storageError) throw storageError;
 
@@ -560,6 +557,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
 
       // Then, delete the file from Supabase
       try {
+        console.log("Deleting file:", fileToDelete.storage_path);
         // Delete the file from storage
         const { error: storageError } = await supabase.storage
           .from("wysiwyg-documents")
@@ -788,24 +786,29 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       const titleData = await responseFileTitle.json();
       console.log("titleData", titleData);
 
+      // Generate a consistent filename with a timestamp
+      const timestamp = Date.now();
+      const fileName = `${new URL(url).hostname}-${timestamp}.md`;
+
+      // Generate the file path
+      const filePath = `${user?.id}/references/${fileName}`;
+
       // Create a new file-like object from the received content
       const newFile: FileWithContent = {
         id: crypto.randomUUID(), // Generate a new UUID for the file
         title: titleData.title,
         description: null, // You might want to generate a description
         user_id: user?.id || "", // Make sure to handle the case where user is not defined
-        storage_path: `${user?.id}/references/${
-          new URL(url).hostname
-        }-${Date.now()}.md`,
+        storage_path: filePath, // Use the consistent file path
         mime_type: "text/markdown",
         file_size: new Blob([finalContent]).size,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         // Additional fields for FileWithContent
-        name: `${new URL(url).hostname}-${Date.now()}.md`,
+        name: fileName,
         text: finalContent,
         tokens: enc.encode(finalContent).length,
-        lastModified: Date.now(),
+        lastModified: timestamp,
         url: url,
       };
 
@@ -1890,89 +1893,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </Alert>
         </div>
 
-        {/* Floating Menu */}
-        {editor && (
-          <FloatingMenu
-            className="floating-menu ml-[1rem] mt-[10rem] justify-start items-start w-fit"
-            tippyOptions={{ duration: 100 }}
-            editor={editor}
-          >
-            <Alert className="relative p-2 flex flex-col gap-2">
-              <Textarea
-                placeholder="Ask AI"
-                className="h-[3rem] w-[300px] sm:w-[500px] pr-[6rem]"
-                value={userPrompt}
-                disabled={isAskAiLoading}
-                onChange={(e) => setUserPrompt(e.target.value)}
-              />
-              <Button
-                variant="outline"
-                className="absolute right-[1rem] top-[1rem]"
-                onClick={askAi}
-                disabled={isAskAiLoading}
-              >
-                {isAskAiLoading ? (
-                  <span
-                    className="loader"
-                    style={
-                      {
-                        "--loader-size": "18px",
-                        "--loader-color": "#000",
-                        "--loader-color-dark": "#fff",
-                      } as React.CSSProperties
-                    }
-                  ></span>
-                ) : (
-                  "Create"
-                )}
-              </Button>
-              <div className="flex flex-row gap-2">
-                <Toggle
-                  variant="outline"
-                  defaultPressed={true}
-                  pressed={includeFullDocument}
-                  onPressedChange={setIncludeFullDocument}
-                  className={`flex flex-row gap-2 h-fit py-1 ${
-                    !includeFullDocument ? "text-muted-foreground" : ""
-                  }`}
-                >
-                  {includeFullDocument ? (
-                    <CircleCheckBig className="w-4 h-4 flex-none" />
-                  ) : (
-                    <Circle className="w-4 h-4 flex-none text-muted-foreground" />
-                  )}
-                  <div className="flex flex-row text-left items-center">
-                    <div className="">
-                      <FileDigit className="w-4 h-4 flex-none mr-2" />
-                    </div>
-                    <div className="">{documentTokens} Tokens</div>
-                  </div>
-                </Toggle>
-                <Toggle
-                  variant="outline"
-                  defaultPressed={true}
-                  pressed={includeSelectedReferences}
-                  onPressedChange={setIncludeSelectedReferences}
-                  className={`flex flex-row gap-2 h-fit py-1 ${
-                    !includeSelectedReferences ? "text-muted-foreground" : ""
-                  }`}
-                >
-                  {includeSelectedReferences ? (
-                    <CircleCheckBig className="w-4 h-4 flex-none" />
-                  ) : (
-                    <Circle className="w-4 h-4 flex-none text-muted-foreground" />
-                  )}
-                  <div className="flex flex-row text-left items-center">
-                    <div className="">
-                      <BrainCircuit className="w-4 h-4 flex-none mr-2" />
-                    </div>
-                    <div className="">{selectedReferencesTokens} tokens</div>
-                  </div>
-                </Toggle>
-              </div>
-            </Alert>
-          </FloatingMenu>
-        )}
+        {/* floating menu */}
+        {editor && <FloatingMenu editor={editor} />}
       </div>
     </div>
   );
