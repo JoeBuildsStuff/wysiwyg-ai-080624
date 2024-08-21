@@ -371,6 +371,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   ) => {
     const savedRefs: any[] = [];
 
+    console.log("Saving references:", references);
+
     for (const ref of references) {
       try {
         // Generate a consistent filename with a timestamp
@@ -390,9 +392,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             upsert: true,
           });
 
-        if (storageError) throw storageError;
-
         console.log("File uploaded/updated successfully:", filePath);
+        console.log("storageError:", storageError);
+
+        if (storageError) throw storageError;
 
         // Use the same filePath for database operations
         const { data: existingRef, error: existingRefError } = await supabase
@@ -1822,9 +1825,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </Alert>
         </div>
 
-        <div className="flex flex-row gap-2 flex-wrap items-end justify-end">
+        <div className="flex flex-row gap-2 flex-wrap sm:items-end sm:justify-end">
           {/* Words and Char Counts */}
-          <Alert className="flex flex-row p-1 px-2 m-0 h-fit w-fit gap-1">
+          <Alert className="hidden sm:flex flex-row p-1 px-2 m-0 h-fit w-fit gap-1">
             <div className="text-xs text-muted-foreground">
               {editor.storage.characterCount.words()} words
               <br />
@@ -1876,10 +1879,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                 </Button>
               </PopoverContent>
             </Popover>
-          </Alert>
-
-          {/* save button */}
-          <Alert className="flex flex-row p-1 m-0 h-fit w-fit gap-1">
+            {/* save button */}
             <Button
               variant="ghost"
               className="p-[.35rem] m-0 h-fit w-fit"
