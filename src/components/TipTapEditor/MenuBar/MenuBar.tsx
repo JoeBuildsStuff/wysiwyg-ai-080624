@@ -37,8 +37,14 @@ import {
   FileImage,
   Save,
   Underline as UnderlineIcon,
+  Share,
+  Send,
+  Lock,
+  LockOpen,
+  Copy,
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
 import { createLowlight, all } from "lowlight";
@@ -220,9 +226,22 @@ export const MenuBar: React.FC<MenuBarProps> = ({
     user_id: initialDocument?.user_id || "",
   });
 
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+
   // handle the save button click
   const handleSave = useCallback(async () => {
-    if (!editor || !user) return;
+    if (!editor) return;
+    
+    if (!user) {
+      toast({
+        title: "Oops",
+        description: "No user found. Please sign in to save your document.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -465,6 +484,78 @@ export const MenuBar: React.FC<MenuBarProps> = ({
     }
 
     return savedRefs;
+  };
+
+
+  //handle the share button click
+  const handleShare = useCallback(async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "You must be logged in to share documents.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!document.id) {
+      toast({
+        title: "Save Required",
+        description: "Please save your document before sharing.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newIsPublic = !document.is_public;
+      
+      const { data, error } = await supabase
+        .from('wysiwyg_documents')
+        .update({ is_public: newIsPublic })
+        .eq('id', document.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Update local state
+      setDocument({ ...document, is_public: newIsPublic });
+      
+      // Generate share URL and open dialog
+      if (newIsPublic) {
+        const shareLink = `${window.location.origin}/published?documentId=${document.id}`;
+        setShareUrl(shareLink);
+        setShareDialogOpen(true);
+      }
+      
+      toast({
+        title: newIsPublic ? "Document shared" : "Document unshared",
+        description: newIsPublic 
+          ? "Your document is now publicly accessible." 
+          : "Your document is now private.",
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.error('Error updating document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update sharing settings.",
+        position: "bottom-right",
+        variant: "destructive",
+      });
+    }
+  }, [user, document, supabase, toast]);
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Link copied",
+      description: "Share link copied to clipboard",
+      position: "bottom-right",
+    });
   };
 
   const addImage = useCallback(() => {
@@ -925,7 +1016,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       // Select the newly inserted content
       editor.commands.setTextSelection({ from: currentPos, to: endPos });
     } catch (error) {
-      console.error("Error in askAi:", error);
+      console.log("Error in askAi:", error);
       toast({
         title: "Error",
         description: "Failed to get AI response. Please try again.",
@@ -1890,6 +1981,55 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             >
               <Save className="w-5 h-5 flex-none" />
             </Button>
+
+            {/* Share button */}
+            <>
+              <Button
+                variant="ghost"
+                className="p-[.35rem] m-0 h-fit w-fit"
+                onClick={handleShare}
+              >
+                {document.is_public ? (
+                  <LockOpen className="w-5 h-5 flex-none dark:text-green-400 text-green-600" />
+                ) : (
+                  <Lock className="w-5 h-5 flex-none dark:text-red-400 text-red-600" />
+                )}
+              </Button>
+              
+              <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Share link</DialogTitle>
+                    <DialogDescription>
+                      Anyone with this link will be able to view this document.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-center space-x-2">
+                    <div className="grid flex-1 gap-2">
+                      <Label htmlFor="link" className="sr-only">
+                        Link
+                      </Label>
+                      <Input
+                        id="link"
+                        value={shareUrl}
+                        readOnly
+                      />
+                    </div>
+                    <Button type="button" size="sm" className="px-3" onClick={copyShareLink}>
+                      <span className="sr-only">Copy</span>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <DialogFooter className="sm:justify-start">
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">
+                        Close
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
           </Alert>
         </div>
 

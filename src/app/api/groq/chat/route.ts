@@ -5,7 +5,7 @@ export const runtime = "edge";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-    console.log('POST request received');
+    console.log('POST request received for groq');
   try {
     const body = await req.json();
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
                           `
               }
           ],
-        "model": "llama-3.1-70b-versatile",
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
         "temperature": 1,
         "max_tokens": 7000,
         "top_p": 1,
