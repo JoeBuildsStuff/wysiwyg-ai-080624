@@ -1,8 +1,8 @@
 import SiteHeader from "@/components/site-header";
 
 import SiteFooter from "@/components/site-footer";
-import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
-import DocList from "@/components/DocList/DocList";
+// import { TipTapEditor } from "@/components/TipTapEditor/TipTapEditor";
+// import DocList from "@/components/DocList/DocList";
 
 export default async function Home() {
   return (
@@ -12,10 +12,11 @@ export default async function Home() {
       </nav>
       <div className="relative px-4">
         <div className=" max-w-4xl mx-auto">
-          <div className="absolute top-[11rem] -left-[2.5rem]">
+          hi
+          {/* <div className="absolute top-[11rem] -left-[2.5rem]">
             <DocList />
           </div>
-          <TipTapEditor />
+          <TipTapEditor /> */}
         </div>
       </div>
       <SiteFooter />
